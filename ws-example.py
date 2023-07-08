@@ -6,9 +6,9 @@ import requests
 import _thread
 import rel
 import json
-import config
+import first.config
 
-twitch_config = config.cfg["twitch"]
+twitch_config = first.config.cfg["twitch"]
 
 
 def request_subscription(data):
