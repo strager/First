@@ -31,6 +31,7 @@ def test_update_tokens():
     assert "newgarbage" == authdb.get_access_token(user_id=5)
     assert "newrefreshgarbage" == authdb.get_refresh_token(user_id=5)
 
+@pytest.mark.slow
 def test_created_at_time_slow():
     authdb = AuthDb()
     before_add_user_time = datetime.now(timezone.utc)
@@ -49,6 +50,7 @@ def test_created_at_time_slow():
     assert created_user_time > before_add_user_time
     assert after_created_user_time > created_user_time
 
+@pytest.mark.slow
 def test_updated_at_on_user_add_slow():
     authdb = AuthDb()
     before_add_user_time = datetime.now(timezone.utc)
@@ -67,6 +69,7 @@ def test_updated_at_on_user_add_slow():
     assert updated_user_time > before_add_user_time
     assert after_updated_user_time > updated_user_time
 
+@pytest.mark.slow
 def test_updated_at_slow():
     authdb = AuthDb()
     authdb.add_new_user(
