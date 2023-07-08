@@ -1,5 +1,0 @@
-[twitch]
-client_id = "CLIENT_ID"
-client_secret = "CLIENT_SECRET"
-redirect_uri = "http://localhost:3000"
-scopes = ["channel:read:redemptions", "channel:manage:redemptions", "chat:edit"]
