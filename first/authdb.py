@@ -10,7 +10,7 @@ class AuthDb:
     def __init__(self):
         self.db = sqlite3.connect(":memory:")
         cur = self.db.cursor()
-        cur.execute("CREATE TABLE twitch_tokens(user_id, access_token, refresh_token, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at)")
+        cur.execute("CREATE TABLE twitch_tokens(user_id, access_token, refresh_token, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
 
 
     def add_new_user(self, user_id: UserId, access_token: Token, refresh_token: Token):
@@ -39,3 +39,13 @@ class AuthDb:
         created_at, = result.fetchone()
         created_at = datetime.fromisoformat(created_at + "Z")
         return created_at
+
+    def get_updated_at_time(self, user_id: UserId) -> Time:
+        cur = self.db.cursor()
+        data = {
+            "user_id": user_id,
+        }
+        result = cur.execute("SELECT updated_at FROM twitch_tokens WHERE user_id = :user_id", data)
+        updated_at, = result.fetchone()
+        updated_at = datetime.fromisoformat(updated_at + "Z")
+        return updated_at
