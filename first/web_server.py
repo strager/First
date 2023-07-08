@@ -6,6 +6,7 @@ import first.config
 from werkzeug.exceptions import HTTPException
 import logging
 import requests
+import typing
 
 twitch_config = first.config.cfg["twitch"]
 
@@ -23,7 +24,7 @@ class UnexpectedTwitchOAuthError(HTTPException):
     def description(self) -> str:
         return f"Error from Twitch: {self.error_description} (code: {self.error})"
 
-def create_app(authdb: AuthDb) -> flask.Flask:
+def create_app(authdb: AuthDb = AuthDb()) -> flask.Flask:
     app = flask.Flask(__name__)
 
     @app.route("/")
@@ -99,4 +100,4 @@ def create_app(authdb: AuthDb) -> flask.Flask:
     return app
 
 if __name__ == "__main__":
-    create_app(AuthDb())
+    create_app()
