@@ -6,6 +6,7 @@ from first.authdb import AuthDb, UserNotFoundError
 import first.web_server
 import urllib.parse
 import first.config
+import responses
 
 twitch_config = first.config.cfg["twitch"]
 
@@ -116,7 +117,8 @@ class TestAuthDb(unittest.TestCase):
 
 class TestTwitchWebAuth(unittest.TestCase):
     def setUp(self):
-        app = first.web_server.create_app()
+        self.authdb = AuthDb()
+        app = first.web_server.create_app(authdb=self.authdb)
         app.debug = True
         self.app = app.test_client()
 
@@ -140,6 +142,51 @@ class TestTwitchWebAuth(unittest.TestCase):
         # logger.
         self.assertIn("Parameter redirect_uri does not match registered URI", res.text)
         self.assertIn("redirect_mismatch", res.text)
+
+
+    @responses.activate
+    def test_oauth_twitch_success(self):
+        responses.post(
+            "https://id.twitch.tv/oauth2/token",
+            json={
+                "access_token": "my_access_token",
+                "refresh_token": "my_refresh_token",
+                # TODO(strager): Do we need these?
+                "expires_in": 1234,
+                "scope": [],
+                "token_type": "bearer",
+            },
+            match=[
+                responses.matchers.urlencoded_params_matcher({
+                    "code": "myauthcode",
+                    "grant_type": "authorization_code",
+                    "client_id": twitch_config["client_id"],
+                    "client_secret": twitch_config["client_secret"],
+                    "redirect_uri": "http://localhost/oauth/twitch",
+                }),
+            ],
+        )
+
+        responses.get(
+            "https://api.twitch.tv/helix/users",
+            json={
+                "data": [
+                    {
+                        "id": "12345",
+                        "login": "twitchdev",
+                        "display_name": "TwitchDev",
+                        "email": "not-real@email.com",
+                        "created_at": "2016-12-14T20:32:28Z",
+                    }
+                ]
+            },
+        )
+        res = self.app.get("/oauth/twitch?code=myauthcode&scope=channel%3Aread%3Aredemptions+channel%3Amanage%3Aredemptions")
+
+        self.assertEqual(self.authdb.get_access_token(user_id="12345"), "my_access_token")
+        self.assertEqual(self.authdb.get_refresh_token(user_id="12345"), "my_refresh_token")
+
+        self.assertIn(res.status_code, (302, 303), "should redirect")
 
 if __name__ == '__main__':
     unittest.main()
