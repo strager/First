@@ -95,5 +95,18 @@ class TestAuth(unittest.TestCase):
         with self.assertRaises(UserNotFoundError):
             self.authdb.update_tokens(user_id=42, new_access_token="doesntmatter", new_refresh_token="noneofyourbussiness")
 
+    def test_add_already_exisisting_user(self):
+        self.authdb = AuthDb()
+        self.authdb.add_new_user(
+                user_id=5,
+                access_token="funnytokenhere",
+                refresh_token="funnyrefreshtokenhere"
+        )
+        self.authdb.add_new_user(
+                user_id=5,
+                access_token="thisshouldnbechanged",
+                refresh_token="thisshouldnbechangedeither"
+        )
+
 if __name__ == '__main__':
     unittest.main()

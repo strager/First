@@ -13,7 +13,7 @@ class AuthDb:
     def __init__(self):
         self.db = sqlite3.connect(":memory:")
         cur = self.db.cursor()
-        cur.execute("CREATE TABLE twitch_tokens(user_id, access_token, refresh_token, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+        cur.execute("CREATE TABLE twitch_tokens(user_id UNIQUE, access_token, refresh_token, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
         cur.execute(
             (
                 "CREATE TRIGGER [UPDATE_DT]"
@@ -33,7 +33,13 @@ class AuthDb:
             "access_token": access_token,
             "refresh_token": refresh_token,
         }
-        cur.execute("INSERT INTO twitch_tokens (user_id, access_token, refresh_token) VALUES(:user_id, :access_token, :refresh_token)", data)
+        cur.execute(
+            (
+                "INSERT INTO twitch_tokens (user_id, access_token, refresh_token) VALUES(:user_id, :access_token, :refresh_token) "
+                "ON CONFLICT (user_id) "
+                "DO UPDATE SET access_token = :access_token, refresh_token = :refresh_token"
+            ), data)
+
         self.db.commit()
 
     def get_access_token(self, user_id: UserId) -> Token:
