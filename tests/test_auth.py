@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import time
 import unittest
-from first.authdb import AuthDb
+from first.authdb import AuthDb, UserNotFoundError
 
 TIMESTAMP_RESOLUTION = 1
 
@@ -79,6 +79,21 @@ class TestAuth(unittest.TestCase):
         print(updated_before_update_user_time)
         print(updated_user_time)
         self.assertGreater(updated_user_time, updated_before_update_user_time)
+
+    def test_get_access_token_user_doesnt_exist(self):
+        self.authdb = AuthDb()
+        with self.assertRaises(UserNotFoundError):
+            self.authdb.get_access_token(user_id=42)
+
+    def test_get_refresh_token_user_doesnt_exist(self):
+        self.authdb = AuthDb()
+        with self.assertRaises(UserNotFoundError):
+            self.authdb.get_refresh_token(user_id=42)
+
+    def test_update_tokens_user_doesnt_exist(self):
+        self.authdb = AuthDb()
+        with self.assertRaises(UserNotFoundError):
+            self.authdb.update_tokens(user_id=42, new_access_token="doesntmatter", new_refresh_token="noneofyourbussiness")
 
 if __name__ == '__main__':
     unittest.main()

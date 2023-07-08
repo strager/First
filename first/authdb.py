@@ -6,6 +6,9 @@ UserId = int
 Token = str
 Time = datetime
 
+class UserNotFoundError(Exception):
+    pass
+
 class AuthDb:
     def __init__(self):
         self.db = sqlite3.connect(":memory:")
@@ -33,17 +36,22 @@ class AuthDb:
         cur.execute("INSERT INTO twitch_tokens (user_id, access_token, refresh_token) VALUES(:user_id, :access_token, :refresh_token)", data)
         self.db.commit()
 
-
     def get_access_token(self, user_id: UserId) -> Token:
         cur = self.db.cursor()
         result = cur.execute("SELECT access_token FROM twitch_tokens")
-        access_token, = result.fetchone()
+        result_fetched = result.fetchone()
+        if result_fetched is None:
+            raise UserNotFoundError
+        access_token, = result_fetched
         return access_token
 
     def get_refresh_token(self, user_id: UserId) -> Token:
         cur = self.db.cursor()
         result = cur.execute("SELECT refresh_token FROM twitch_tokens")
-        refresh_token, = result.fetchone()
+        result_fetched = result.fetchone()
+        if result_fetched is None:
+            raise UserNotFoundError
+        refresh_token, = result_fetched
         return refresh_token
 
     def update_tokens(self, user_id: UserId, new_access_token: Token, new_refresh_token: Token):
@@ -54,6 +62,8 @@ class AuthDb:
             "refresh_token": new_refresh_token,
         }
         cur.execute("UPDATE twitch_tokens SET access_token = :access_token, refresh_token = :refresh_token WHERE user_id = :user_id", data)
+        if cur.rowcount == 0:
+            raise UserNotFoundError
         self.db.commit()
 
 
