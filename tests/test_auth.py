@@ -2,10 +2,15 @@ from datetime import datetime, timezone
 import time
 import unittest
 from first.authdb import AuthDb, UserNotFoundError
+import first.web_server
+import urllib.parse
+import first.config
+
+twitch_config = first.config.cfg["twitch"]
 
 TIMESTAMP_RESOLUTION = 1
 
-class TestAuth(unittest.TestCase):
+class TestAuthDb(unittest.TestCase):
 
     def test_add_new_tokens(self):
         self.authdb = AuthDb()
@@ -107,6 +112,25 @@ class TestAuth(unittest.TestCase):
                 access_token="thisshouldnbechanged",
                 refresh_token="thisshouldnbechangedeither"
         )
+
+class TestTwitchWebAuth(unittest.TestCase):
+    def setUp(self):
+        app = first.web_server.create_app()
+        app.debug = True
+        self.app = app.test_client()
+
+    def test_log_in_post_redirects_to_twitch(self):
+        res = self.app.post("/login")
+        self.assertEqual(res.status_code, 303, "should redirect with a GET request")
+        url = urllib.parse.urlparse(res.headers["location"])
+        self.assertEqual(url._replace(fragment="", query="").geturl(), "https://id.twitch.tv/oauth2/authorize")
+        parameters = urllib.parse.parse_qs(url.query)
+        self.assertEqual(parameters["response_type"], ["code"])
+        self.assertEqual(parameters["client_id"], [twitch_config["client_id"]])
+        self.assertEqual(parameters["redirect_uri"], [twitch_config["redirect_uri"]])
+        scopes = parameters["scope"][-1].split(" ")
+        self.assertIn("channel:read:redemptions", scopes)
+        self.assertIn("channel:manage:redemptions", scopes)
 
 if __name__ == '__main__':
     unittest.main()
