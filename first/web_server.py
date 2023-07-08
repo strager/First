@@ -64,7 +64,7 @@ def create_app(authdb: AuthDb = AuthDb()) -> flask.Flask:
             "Client-Id": twitch_config["client_id"],
         }).json()
         user_id = response["data"][0]["id"]
-        authdb.add_new_user(
+        authdb.update_or_create_user(
             user_id=user_id,
             access_token=access_token,
             refresh_token=refresh_token,

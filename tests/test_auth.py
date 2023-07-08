@@ -12,7 +12,7 @@ TIMESTAMP_RESOLUTION = 1
 
 def test_add_new_tokens():
     authdb = AuthDb()
-    authdb.add_new_user(
+    authdb.update_or_create_user(
             user_id=5,
             access_token="funnytokenhere",
             refresh_token="funnyrefreshtokenhere"
@@ -22,12 +22,12 @@ def test_add_new_tokens():
 
 def test_update_tokens():
     authdb = AuthDb()
-    authdb.add_new_user(
+    authdb.update_or_create_user(
             user_id=5,
             access_token="funnytokenhere",
             refresh_token="funnyrefreshtokenhere"
     )
-    authdb.update_tokens(user_id=5, new_access_token="newgarbage", new_refresh_token="newrefreshgarbage")
+    authdb.update_or_create_user(user_id=5, access_token="newgarbage", refresh_token="newrefreshgarbage")
     assert "newgarbage" == authdb.get_access_token(user_id=5)
     assert "newrefreshgarbage" == authdb.get_refresh_token(user_id=5)
 
@@ -36,7 +36,7 @@ def test_created_at_time_slow():
     authdb = AuthDb()
     before_add_user_time = datetime.now(timezone.utc)
     time.sleep(TIMESTAMP_RESOLUTION)
-    authdb.add_new_user(
+    authdb.update_or_create_user(
             user_id=5,
             access_token="funnytokenhere",
             refresh_token="funnyrefreshtokenhere"
@@ -55,7 +55,7 @@ def test_updated_at_on_user_add_slow():
     authdb = AuthDb()
     before_add_user_time = datetime.now(timezone.utc)
     time.sleep(TIMESTAMP_RESOLUTION)
-    authdb.add_new_user(
+    authdb.update_or_create_user(
             user_id=5,
             access_token="funnytokenhere",
             refresh_token="funnyrefreshtokenhere"
@@ -72,14 +72,14 @@ def test_updated_at_on_user_add_slow():
 @pytest.mark.slow
 def test_updated_at_slow():
     authdb = AuthDb()
-    authdb.add_new_user(
+    authdb.update_or_create_user(
             user_id=5,
             access_token="funnytokenhere",
             refresh_token="funnyrefreshtokenhere"
     )
     updated_before_update_user_time = authdb.get_updated_at_time(user_id=5)
     time.sleep(TIMESTAMP_RESOLUTION)
-    authdb.update_tokens(user_id=5, new_access_token="newthing", new_refresh_token="newrefreshthing")
+    authdb.update_or_create_user(user_id=5, access_token="newthing", refresh_token="newrefreshthing")
     time.sleep(TIMESTAMP_RESOLUTION)
     updated_user_time = authdb.get_updated_at_time(user_id=5)
     print(updated_before_update_user_time)
@@ -96,20 +96,17 @@ def test_get_refresh_token_user_doesnt_exist():
     with pytest.raises(UserNotFoundError):
         authdb.get_refresh_token(user_id=42)
 
-def test_update_tokens_user_doesnt_exist():
-    authdb = AuthDb()
-    with pytest.raises(UserNotFoundError):
-        authdb.update_tokens(user_id=42, new_access_token="doesntmatter", new_refresh_token="noneofyourbussiness")
-
 def test_add_already_exisisting_user():
     authdb = AuthDb()
-    authdb.add_new_user(
+    authdb.update_or_create_user(
             user_id=5,
             access_token="funnytokenhere",
             refresh_token="funnyrefreshtokenhere"
     )
-    authdb.add_new_user(
+    authdb.update_or_create_user(
             user_id=5,
-            access_token="thisshouldnbechanged",
-            refresh_token="thisshouldnbechangedeither"
+            access_token="thisshouldbetheupdatedtoken",
+            refresh_token="thisshouldbechangedalso"
     )
+    assert authdb.get_access_token(user_id=5) == "thisshouldbetheupdatedtoken"
+    assert authdb.get_refresh_token(user_id=5) == "thisshouldbechangedalso"
