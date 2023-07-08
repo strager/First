@@ -11,6 +11,16 @@ class AuthDb:
         self.db = sqlite3.connect(":memory:")
         cur = self.db.cursor()
         cur.execute("CREATE TABLE twitch_tokens(user_id, access_token, refresh_token, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+        cur.execute(
+            (
+                "CREATE TRIGGER [UPDATE_DT]"
+                "  AFTER UPDATE ON twitch_tokens FOR EACH ROW"
+                "  WHEN OLD.updated_at = NEW.updated_at OR OLD.updated_at IS NULL"
+                " BEGIN"
+                "   UPDATE twitch_tokens SET updated_at=CURRENT_TIMESTAMP WHERE user_id=NEW.user_id;"
+                " END;"
+            )
+        )
 
 
     def add_new_user(self, user_id: UserId, access_token: Token, refresh_token: Token):
@@ -29,6 +39,23 @@ class AuthDb:
         result = cur.execute("SELECT access_token FROM twitch_tokens")
         access_token, = result.fetchone()
         return access_token
+
+    def get_refresh_token(self, user_id: UserId) -> Token:
+        cur = self.db.cursor()
+        result = cur.execute("SELECT refresh_token FROM twitch_tokens")
+        refresh_token, = result.fetchone()
+        return refresh_token
+
+    def update_tokens(self, user_id: UserId, new_access_token: Token, new_refresh_token: Token):
+        cur = self.db.cursor()
+        data = {
+            "user_id": user_id,
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+        }
+        cur.execute("UPDATE twitch_tokens SET access_token = :access_token, refresh_token = :refresh_token WHERE user_id = :user_id", data)
+        self.db.commit()
+
 
     def get_created_at_time(self, user_id: UserId) -> Time:
         cur = self.db.cursor()
