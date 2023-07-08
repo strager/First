@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import time
 import unittest
+import unittest.mock
 from first.authdb import AuthDb, UserNotFoundError
 import first.web_server
 import urllib.parse
@@ -127,10 +128,18 @@ class TestTwitchWebAuth(unittest.TestCase):
         parameters = urllib.parse.parse_qs(url.query)
         self.assertEqual(parameters["response_type"], ["code"])
         self.assertEqual(parameters["client_id"], [twitch_config["client_id"]])
-        self.assertEqual(parameters["redirect_uri"], [twitch_config["redirect_uri"]])
+        self.assertEqual(parameters["redirect_uri"], ["http://localhost/oauth/twitch"])
         scopes = parameters["scope"][-1].split(" ")
         self.assertIn("channel:read:redemptions", scopes)
         self.assertIn("channel:manage:redemptions", scopes)
+
+    def test_oauth_twitch_failure_redirect_mismatch(self):
+        res = self.app.get("/oauth/twitch?error=redirect_mismatch&error_description=Parameter+redirect_uri+does+not+match+registered+URI")
+        self.assertEqual(res.status_code, 500)
+        # TODO(strager): Instead, assert that a message was logged to the
+        # logger.
+        self.assertIn("Parameter redirect_uri does not match registered URI", res.text)
+        self.assertIn("redirect_mismatch", res.text)
 
 if __name__ == '__main__':
     unittest.main()
