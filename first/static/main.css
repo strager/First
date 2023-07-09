@@ -1,3 +1,32 @@
 body {
     font-family: sans-serif;
+    background-color: #f1e4ea;
+}
+
+section {
+    max-width: 920px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+header {
+    border-bottom: 1px solid #666;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+table th {
+    text-align: left;
+}
+table th, table td {
+    padding: 0.25rem;
+}
+
+table.streamer-leaderboard {
+    border-collapse: collapse;
+}
+table.streamer-leaderboard th, table.streamer-leaderboard td {
+    border: 1px solid #999;
 }
