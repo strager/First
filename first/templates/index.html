@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>First! Twitch app</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    </head>
+    <body>
+        <header>
+            <h1>First!</h1>
+            <p>Be the first person to arrive in your favorite Twitch streamer's chat and win internet points!</p>
+        </header>
+        <section>
+            <h2>Most popular streamers</h2>
+            <table class="streamer-leaderboard">
+                <thead>
+                    <tr>
+                        <th>Twitch streamer</th>
+                        <td>Past month</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- TODO(strager): Load this data from the database. -->
+                    <tr>
+                        <th><a href="/stream/strager">strager</a></th>
+                        <td>69 firsts</td>
+                    </tr>
+                    <tr>
+                        <th><a href="/stream/emceeMC2">emceeMC2</a></th>
+                        <td>1 first</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Register your stream</h2>
+            <p>Are you a Twitch streamer? Add <i>First!</i> to your own stream:</p>
+            <form method="POST" action="{{ url_for('log_in') }}">
+                <button>Add First! to Twitch</button>
+            </form>
+        </section>
+    </body>
+</html>

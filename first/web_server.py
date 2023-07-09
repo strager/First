@@ -29,7 +29,7 @@ def create_app(authdb: AuthDb = AuthDb()) -> flask.Flask:
 
     @app.route("/")
     def hello_world():
-        return "<p>Hello, World!</p>"
+        return flask.render_template('index.html')
 
     @app.get("/login")
     def log_in_view():
