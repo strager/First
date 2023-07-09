@@ -2,6 +2,8 @@
 import sqlite3
 import threading
 from datetime import datetime
+import typing
+from first.twitch import Twitch
 
 UserId = int
 Token = str
@@ -9,6 +11,30 @@ Time = datetime
 
 class UserNotFoundError(Exception):
     pass
+
+class TokenProvider(typing.Protocol):
+    def get_access_token(self) -> Token: ...
+    def refresh_access_token(self) -> Token: ...
+
+class AuthDbUserTokenProvider(TokenProvider):
+    _authdb: "AuthDb"
+    _user_id: UserId
+
+    def __init__(self, authdb: "AuthDb", user_id: UserId) -> None:
+        self._authdb = authdb
+        self._user_id = user_id
+
+    def get_access_token(self) -> Token:
+        return self._authdb.get_access_token(self._user_id)
+
+    def refresh_access_token(self) -> Token:
+        refresh_result = Twitch().refresh_auth_token(self._authdb.get_refresh_token(self._user_id))
+        self._authdb.update_or_create_user(
+            user_id=self._user_id,
+            access_token=refresh_result.new_access_token,
+            refresh_token=refresh_result.new_refresh_token,
+        )
+        return refresh_result.new_access_token
 
 class AuthDb:
     db: sqlite3.Connection

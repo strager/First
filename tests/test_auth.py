@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
+import responses
 import threading
 import time
 import pytest
-from first.authdb import AuthDb, UserNotFoundError
+from first.authdb import AuthDb, UserNotFoundError, AuthDbUserTokenProvider
 import urllib.parse
 import first.config
 
@@ -151,3 +152,48 @@ def test_read_and_write_from_multiple_threads():
 
     assert loaded_access_token in ("(not found)", "thread_1_access_token", "thread_2_access_token")
     assert loaded_refresh_token in ("(not found)", "thread_1_refresh_token", "thread_2_refresh_token")
+
+def test_token_provider_gives_token_from_database():
+    authdb = AuthDb()
+    authdb.update_or_create_user(
+            user_id=5,
+            access_token="my_access_token",
+            refresh_token="my_refresh_token"
+    )
+    token_provider = AuthDbUserTokenProvider(authdb, user_id=5)
+    assert token_provider.get_access_token() == "my_access_token"
+
+@responses.activate
+def test_token_provider_refresh_gets_new_access_and_access_tokens_from_twitch_api():
+    responses.post(
+        "https://id.twitch.tv/oauth2/token",
+        match=[
+            responses.matchers.urlencoded_params_matcher({
+                "grant_type": "refresh_token",
+                "client_id": twitch_config["client_id"],
+                "client_secret": twitch_config["client_secret"],
+                "refresh_token": "original_refresh_token",
+            }),
+        ],
+        json={
+            'access_token': 'new_access_token',
+            'expires_in': 15578,
+            'refresh_token': 'new_refresh_token',
+            'scope': ['channel:manage:redemptions', 'channel:read:redemptions', 'chat:edit'],
+            'token_type': 'bearer',
+        },
+    )
+
+    authdb = AuthDb()
+    authdb.update_or_create_user(
+            user_id=5,
+            access_token="original_access_token",
+            refresh_token="original_refresh_token"
+    )
+    token_provider = AuthDbUserTokenProvider(authdb, user_id=5)
+
+    assert token_provider.refresh_access_token() == "new_access_token"
+    assert token_provider.get_access_token() == "new_access_token"
+
+    assert authdb.get_access_token(user_id=5) == "new_access_token"
+    assert authdb.get_refresh_token(user_id=5) == "new_refresh_token"
