@@ -1,5 +1,6 @@
 import flask
 from uuid import uuid4
+from first.twitch import Twitch
 from urllib.parse import quote_plus
 from first.authdb import AuthDb
 import first.config
@@ -59,11 +60,8 @@ def create_app(authdb: AuthDb = AuthDb()) -> flask.Flask:
         access_token = response['access_token']
         refresh_token = response['refresh_token']
 
-        response = requests.get("https://api.twitch.tv/helix/users", headers={
-            "Authorization": f"Bearer {access_token}",
-            "Client-Id": twitch_config["client_id"],
-        }).json()
-        user_id = response["data"][0]["id"]
+        twitch = Twitch()
+        user_id = twitch.get_authenticated_user_id(access_token=access_token)
         authdb.update_or_create_user(
             user_id=user_id,
             access_token=access_token,
