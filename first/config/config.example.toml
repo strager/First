@@ -4,3 +4,6 @@ client_id = "CLIENT_ID"
 client_secret = "CLIENT_SECRET"
 token = "TOKEN"
 refresh_token = "REFRESH_TOKEN"
+
+[authdb]
+db = "auth.db"

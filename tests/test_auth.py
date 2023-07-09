@@ -13,7 +13,7 @@ TIMESTAMP_RESOLUTION = 1
 
 
 def test_add_new_tokens():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -23,7 +23,7 @@ def test_add_new_tokens():
     assert "funnyrefreshtokenhere" == authdb.get_refresh_token(user_id="5")
 
 def test_update_tokens():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -35,7 +35,7 @@ def test_update_tokens():
 
 @pytest.mark.slow
 def test_created_at_time_slow():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     before_add_user_time = datetime.now(timezone.utc)
     time.sleep(TIMESTAMP_RESOLUTION)
     authdb.update_or_create_user(
@@ -54,7 +54,7 @@ def test_created_at_time_slow():
 
 @pytest.mark.slow
 def test_updated_at_on_user_add_slow():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     before_add_user_time = datetime.now(timezone.utc)
     time.sleep(TIMESTAMP_RESOLUTION)
     authdb.update_or_create_user(
@@ -73,7 +73,7 @@ def test_updated_at_on_user_add_slow():
 
 @pytest.mark.slow
 def test_updated_at_slow():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -89,17 +89,17 @@ def test_updated_at_slow():
     assert updated_user_time > updated_before_update_user_time
 
 def test_get_access_token_user_doesnt_exist():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     with pytest.raises(UserNotFoundError):
         authdb.get_access_token(user_id=42)
 
 def test_get_refresh_token_user_doesnt_exist():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     with pytest.raises(UserNotFoundError):
         authdb.get_refresh_token(user_id=42)
 
 def test_add_already_exisisting_user():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -114,7 +114,7 @@ def test_add_already_exisisting_user():
     assert authdb.get_refresh_token(user_id="5") == "thisshouldbechangedalso"
 
 def test_read_and_write_from_multiple_threads():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
 
     loaded_access_token = None
     loaded_refresh_token = None
@@ -154,7 +154,7 @@ def test_read_and_write_from_multiple_threads():
     assert loaded_refresh_token in ("(not found)", "thread_1_refresh_token", "thread_2_refresh_token")
 
 def test_token_provider_gives_token_from_database():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="my_access_token",
@@ -184,7 +184,7 @@ def test_token_provider_refresh_gets_new_access_and_access_tokens_from_twitch_ap
         },
     )
 
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="original_access_token",

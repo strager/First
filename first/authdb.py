@@ -4,10 +4,13 @@ import threading
 from datetime import datetime
 import typing
 from first.twitch import Twitch
+from first.config import cfg
 
 UserId = str
 Token = str
 Time = datetime
+
+authdb_config = cfg["authdb"]
 
 class UserNotFoundError(Exception):
     pass
@@ -47,17 +50,28 @@ class AuthDb:
     # enabled. Therefore, we must serialize/lock ourselves.
     __lock: threading.Lock
 
-    def __init__(self):
+    def __init__(self, db=authdb_config["db"]):
         self.db = sqlite3.connect(
-            ":memory:",
+            db,
             # See NOTE[AuthDb-lock].
             check_same_thread=False,
         )
         cur = self.db.cursor()
-        cur.execute("CREATE TABLE twitch_tokens(user_id UNIQUE, access_token, refresh_token, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
         cur.execute(
             (
-                "CREATE TRIGGER [UPDATE_DT]"
+                "CREATE TABLE IF NOT EXISTS "
+                "twitch_tokens("
+                    "user_id UNIQUE, "
+                    "access_token, "
+                    "refresh_token, "
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                ")"
+            )
+        )
+        cur.execute(
+            (
+                "CREATE TRIGGER IF NOT EXISTS [UPDATE_DT]"
                 "  AFTER UPDATE ON twitch_tokens FOR EACH ROW"
                 "  WHEN OLD.updated_at = NEW.updated_at OR OLD.updated_at IS NULL"
                 " BEGIN"

@@ -16,7 +16,7 @@ def web_app(authdb):
 
 @pytest.fixture
 def authdb():
-    authdb = AuthDb()
+    authdb = AuthDb(":memory:")
     return authdb
 
 def test_log_in_post_redirects_to_twitch(web_app):
