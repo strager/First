@@ -1,4 +1,5 @@
 import requests
+import json
 from urllib.parse import quote_plus
 import first.config
 import typing
@@ -54,19 +55,45 @@ class AuthenticatedTwitch:
         # TODO(strager): Robust error handling.
         return data["data"][0]["display_name"]
 
+    def request_eventsub_subscription(self, request_body) -> None:
+        response = self._post_json("https://api.twitch.tv/helix/eventsub/subscriptions", body=request_body)
+        # TODO(strager): Robust error handling.
+        print(response)
+
     def _get_json(self, uri: str):
         """Issue an HTTP GET request and return parsed JSON.
 
-        The GET request includes authentication headers.
+        See _request_json for details about authentication and refreshing.
+        """
+        return self._request_json("GET", uri)
+
+    def _post_json(self, uri: str, body):
+        """Issue an HTTP POST request and return parsed JSON.
+
+        body must be convertible to JSON.
+
+        See _request_json for details about authentication and refreshing.
+        """
+        return self._request_json("POST", uri, data=json.dumps(body), headers={
+            'Content-Type': 'application/json',
+        })
+
+    def _request_json(self, *requests_args, **requests_kwargs):
+        """Issue an HTTP request and return parsed JSON.
+
+        The request includes authentication headers.
 
         This function refreshes the token and retries if an initial request
         fails with an authentication error.
         """
+        extra_headers = requests_kwargs.pop("headers", {})
         def issue_request() -> None:
-            return requests.get(uri, headers={
+            headers = {
                 "Authorization": f"Bearer {self._auth_token_provider.get_access_token()}",
                 "Client-Id": twitch_config["client_id"],
-            })
+            }
+            headers.update(extra_headers)
+            return requests.request(*requests_args, **requests_kwargs, headers=headers)
         response = issue_request()
         if response.status_code == 401:
             self._auth_token_provider.refresh_access_token()

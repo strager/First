@@ -7,27 +7,27 @@ import _thread
 import rel
 import json
 import first.config
+from first.twitch import AuthenticatedTwitch
+from first.authdb import AuthDb, AuthDbUserTokenProvider
 
 twitch_config = first.config.cfg["twitch"]
 
-
-def request_subscription(data):
-    client_id = twitch_config["client_id"]
-    headers = {
-        "Authorization": f"Bearer {twitch_config['token']}",
-        "Client-Id": client_id,
-        "Content-Type": "application/json",
-    }
-    result = requests.post("https://api.twitch.tv/helix/eventsub/subscriptions", data=json.dumps(data), headers=headers)
-    return result
+authdb = AuthDb()
+authdb.update_or_create_user(
+    # TODO(strager): Make these user-controlled in a nicer way than the config
+    # file.
+    user_id=twitch_config["channel_id"],
+    access_token=twitch_config["token"],
+    refresh_token=twitch_config["refresh_token"],
+)
 
 def on_message(ws, message):
     msg = json.loads(message)
     print(msg)
     channel_id = twitch_config["channel_id"]
-    client_id = twitch_config["client_id"]
-    client_secret = twitch_config["client_secret"]
     if msg["metadata"]["message_type"] == "session_welcome":
+        token_provider = AuthDbUserTokenProvider(authdb, user_id=twitch_config["channel_id"])
+        twitch = AuthenticatedTwitch(token_provider)
         session_id = msg['payload']['session']['id']
         data = {
             "type": "channel.channel_points_custom_reward_redemption.add",
@@ -40,21 +40,7 @@ def on_message(ws, message):
                 "session_id": session_id
             }
         }
-        result = request_subscription(data)
-        if result.status_code == 401:
-            refresh_data = {
-                "grant_type": "refresh_token",
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "refresh_token": twitch_config["refresh_token"],
-            }
-            refresh_result = requests.post("https://id.twitch.tv/oauth2/token", data=refresh_data)
-            print(refresh_result.status_code)
-            refresh_result = refresh_result.json()
-            twitch_config["token"] = refresh_result["access_token"]
-            twitch_config["refresh_token"] = refresh_result["refresh_token"]
-            result = request_subscription(data)
-        print(result, result.text)
+        twitch.request_eventsub_subscription(data)
 
 def on_error(ws, error):
     traceback.print_exception(error)
