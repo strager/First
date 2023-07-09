@@ -5,7 +5,7 @@ from datetime import datetime
 import typing
 from first.twitch import Twitch
 
-UserId = int
+UserId = str
 Token = str
 Time = datetime
 
