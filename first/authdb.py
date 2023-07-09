@@ -107,7 +107,10 @@ class AuthDb:
     def get_access_token(self, user_id: UserId) -> Token:
         with self.__lock:
             cur = self.db.cursor()
-            result = cur.execute("SELECT access_token FROM twitch_tokens")
+            data = {
+                "user_id": user_id,
+            }
+            result = cur.execute("SELECT access_token FROM twitch_tokens WHERE user_id = :user_id", data)
             result_fetched = result.fetchone()
         if result_fetched is None:
             raise UserNotFoundError
@@ -117,7 +120,10 @@ class AuthDb:
     def get_refresh_token(self, user_id: UserId) -> Token:
         with self.__lock:
             cur = self.db.cursor()
-            result = cur.execute("SELECT refresh_token FROM twitch_tokens")
+            data = {
+                "user_id": user_id,
+            }
+            result = cur.execute("SELECT refresh_token FROM twitch_tokens WHERE user_id = :user_id", data)
             result_fetched = result.fetchone()
         if result_fetched is None:
             raise UserNotFoundError
