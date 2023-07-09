@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import threading
 import time
 import pytest
 from first.authdb import AuthDb, UserNotFoundError
@@ -110,3 +111,43 @@ def test_add_already_exisisting_user():
     )
     assert authdb.get_access_token(user_id=5) == "thisshouldbetheupdatedtoken"
     assert authdb.get_refresh_token(user_id=5) == "thisshouldbechangedalso"
+
+def test_read_and_write_from_multiple_threads():
+    authdb = AuthDb()
+
+    loaded_access_token = None
+    loaded_refresh_token = None
+
+    def thread_1() -> None:
+        authdb.update_or_create_user(
+                user_id=5,
+                access_token="thread_1_access_token",
+                refresh_token="thread_1_refresh_token"
+        )
+    def thread_2() -> None:
+        authdb.update_or_create_user(
+                user_id=5,
+                access_token="thread_2_access_token",
+                refresh_token="thread_2_refresh_token"
+        )
+    def thread_3() -> None:
+        nonlocal loaded_access_token
+        try:
+            loaded_access_token = authdb.get_access_token(user_id=5)
+        except UserNotFoundError:
+            loaded_access_token = "(not found)"
+    def thread_4() -> None:
+        nonlocal loaded_refresh_token
+        try:
+            loaded_refresh_token = authdb.get_refresh_token(user_id=5)
+        except UserNotFoundError:
+            loaded_refresh_token = "(not found)"
+
+    threads = [threading.Thread(target=f) for f in [thread_1, thread_2, thread_3, thread_4]]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert loaded_access_token in ("(not found)", "thread_1_access_token", "thread_2_access_token")
+    assert loaded_refresh_token in ("(not found)", "thread_1_refresh_token", "thread_2_refresh_token")
