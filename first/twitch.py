@@ -50,8 +50,20 @@ class AuthenticatedTwitch:
         self._auth_token_provider = auth_token_provider
 
     def get_user_display_name_by_user_id(self, user_id: "UserId") -> str:
+        data = self._get_json(f"https://api.twitch.tv/helix/users?id={quote_plus(user_id)}")
+        # TODO(strager): Robust error handling.
+        return data["data"][0]["display_name"]
+
+    def _get_json(self, uri: str):
+        """Issue an HTTP GET request and return parsed JSON.
+
+        The GET request includes authentication headers.
+
+        This function refreshes the token and retries if an initial request
+        fails with an authentication error.
+        """
         def issue_request() -> None:
-            return requests.get(f"https://api.twitch.tv/helix/users?id={quote_plus(user_id)}", headers={
+            return requests.get(uri, headers={
                 "Authorization": f"Bearer {self._auth_token_provider.get_access_token()}",
                 "Client-Id": twitch_config["client_id"],
             })
@@ -59,5 +71,5 @@ class AuthenticatedTwitch:
         if response.status_code == 401:
             self._auth_token_provider.refresh_access_token()
             response = issue_request()
-        # TODO(strager): Robust error handling.
-        return response.json()["data"][0]["display_name"]
+        # TODO(strager): Check status code.
+        return response.json()
