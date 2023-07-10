@@ -1,0 +1,23 @@
+{% extends "skeletons/base.html" %}
+{% block title %}EventSub - First! admin{% endblock %}
+
+{% block header %}
+    <p>Twitch EventSub WebSocket debugger</p>
+{% endblock %}
+
+{% block body %}
+    <table>
+        <thead>
+            <tr>
+                <th>User ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for connection in eventsub_connections %}
+                <tr>
+                    <th>{{ connection._twitch.get_self_user_id_fast() }}</th>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

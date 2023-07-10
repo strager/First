@@ -1,0 +1,12 @@
+{% extends "skeletons/base.html" %}
+{% block title %}First! admin panel{% endblock %}
+
+{% block header %}
+    <p>For adminstrators only.</p>
+{% endblock %}
+
+{% block body %}
+    <ul>
+        <li><a href="{{ url_for('admin_eventsub') }}">EventSub</a></li>
+    </ul>
+{% endblock %}

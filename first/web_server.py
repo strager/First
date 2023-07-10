@@ -43,6 +43,14 @@ def create_app(authdb: AuthDb = AuthDb(), eventsub_websocket_manager: TwitchEven
     def log_in_view():
         return flask.render_template('login.html')
 
+    @app.get("/admin")
+    def admin_view():
+        return flask.render_template('admin/index.html')
+
+    @app.get("/admin/eventsub")
+    def admin_eventsub():
+        return flask.render_template('admin/eventsub.html', eventsub_connections=eventsub_websocket_manager.get_all_threads_for_testing())
+
     @app.get("/oauth/twitch")
     def oauth_twitch():
         error = flask.request.args.get('error', None)
