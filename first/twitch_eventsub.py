@@ -90,7 +90,15 @@ class TwitchEventSubWebSocketManager:
         with self._lock:
             return list(self._threads)
 
-class TwitchEventSubWebSocketThread:
+class TwitchEventSubWebSocketThreadBase:
+    _lock: threading.Lock
+    _twitch: AuthenticatedTwitch
+
+    def __init__(self, twitch: AuthenticatedTwitch) -> None:
+        self._lock = threading.Lock()
+        self._twitch = twitch
+
+class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     """A single WebSocket connection for Twitch's EventSub API.
 
     This object is thread-safe.
@@ -98,9 +106,6 @@ class TwitchEventSubWebSocketThread:
     Documentation for the websockets package:
     https://websockets.readthedocs.io/en/stable/reference/sync/client.html
     """
-
-    _lock: threading.Lock
-    _twitch: AuthenticatedTwitch
 
     # Protected by _lock:
     _subscriptions: "typing.List[_Subscription]"
@@ -111,9 +116,8 @@ class TwitchEventSubWebSocketThread:
     _client: typing.Optional[websockets.sync.client.ClientConnection] = None
 
     def __init__(self, twitch: AuthenticatedTwitch) -> None:
-        self._lock = threading.Lock()
+        super().__init__(twitch)
         self._subscriptions = []
-        self._twitch = twitch
 
     class _Subscription(typing.NamedTuple):
         type: str
@@ -235,20 +239,13 @@ class TwitchEventSubWebSocketThread:
                     },
                 })
 
-class FakeTwitchEventSubWebSocketThread:
+class FakeTwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     """Like TwitchEventSubWebSocketThread, but with behavior stubbed out
     for testing.
     """
 
-    _twitch: AuthenticatedTwitch
-    _lock: threading.Lock
-
     # Protected by _lock:
     _thread_is_running: bool = False
-
-    def __init__(self, twitch: AuthenticatedTwitch) -> None:
-        self._twitch = twitch
-        self._lock = threading.Lock()
 
     def add_subscription(self, type: str, version: str, condition) -> None:
         pass
