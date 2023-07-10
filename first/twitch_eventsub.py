@@ -6,6 +6,7 @@ import threading
 import typing
 import websockets
 import websockets.sync.client
+import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +94,30 @@ class TwitchEventSubWebSocketManager:
 class TwitchEventSubWebSocketThreadBase:
     _lock: threading.Lock
     _twitch: AuthenticatedTwitch
+    _created_timestamp: datetime.datetime
+
+    # Protected by _lock:
+    _last_connected_timestamp: typing.Optional[datetime.datetime] = None
+    _last_received_message_timestamp: typing.Optional[datetime.datetime] = None
 
     def __init__(self, twitch: AuthenticatedTwitch) -> None:
         self._lock = threading.Lock()
         self._twitch = twitch
+        self._created_timestamp = datetime.datetime.now()
+
+    @property
+    def created_timestamp(self) -> datetime.datetime:
+        return self._created_timestamp
+
+    @property
+    def last_connected_timestamp(self) -> typing.Optional[datetime.datetime]:
+        with self._lock:
+            return self._last_connected_timestamp
+
+    @property
+    def last_received_message_timestamp(self) -> typing.Optional[datetime.datetime]:
+        with self._lock:
+            return self._last_received_message_timestamp
 
 class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     """A single WebSocket connection for Twitch's EventSub API.
@@ -192,6 +213,7 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
         client = websockets.sync.client.connect("wss://eventsub.wss.twitch.tv/ws")
 
         with self._lock:
+            self._last_connected_timestamp = datetime.datetime.now()
             assert self._client is None
             if self._should_stop:
                 # The user asked us to stop while we were connecting.
@@ -223,6 +245,8 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
             raise TypeError(f"unsupported message type: {type(message)}")
 
     def _handle_json_message(self, message) -> None:
+        with self._lock:
+            self._last_received_message_timestamp = datetime.datetime.now()
         logger.info("incoming message: %s", message)
         if message["metadata"]["message_type"] == "session_welcome":
             session_id = message['payload']['session']['id']

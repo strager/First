@@ -10,12 +10,18 @@
         <thead>
             <tr>
                 <th>User ID</th>
+                <th>Created</th>
+                <th>Connected</th>
+                <th>Last message</th>
             </tr>
         </thead>
         <tbody>
             {% for connection in eventsub_connections %}
                 <tr>
                     <th>{{ connection._twitch.get_self_user_id_fast() }}</th>
+                    <td>{{ connection.created_timestamp }}</td>
+                    <td>{{ connection.last_connected_timestamp }}</td>
+                    <td>{{ connection.last_received_message_timestamp }}</td>
                 </tr>
             {% endfor %}
         </tbody>
