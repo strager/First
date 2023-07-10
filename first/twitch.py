@@ -10,7 +10,10 @@ if typing.TYPE_CHECKING:
 twitch_config = first.config.cfg["twitch"]
 
 class Twitch:
-    """Unauthenticated Twitch API access."""
+    """Unauthenticated Twitch API access.
+
+    This object is thread-safe.
+    """
 
     def get_authenticated_user_id(self, access_token: "Token") -> "UserId":
         # TODO(strager): Error handling.
@@ -43,6 +46,8 @@ class AuthenticatedTwitch:
     """Authenticated Twitch API access.
 
     Automatically refreshes access tokens if necessary.
+
+    This object is as thread-safe as the given TokenProvider.
     """
 
     _auth_token_provider: "TokenProvider"

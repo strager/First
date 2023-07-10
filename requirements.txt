@@ -1,4 +1,4 @@
 flask
 requests
-websocket-client
+websockets
 rel
