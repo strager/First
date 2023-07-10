@@ -1,2 +1,5 @@
 first/config/config.toml
 __pycache__
+
+# Mentioned in first/config/config.example.toml:
+/auth.db
