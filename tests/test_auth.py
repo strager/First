@@ -113,6 +113,20 @@ def test_add_already_exisisting_user():
     assert authdb.get_access_token(user_id="5") == "thisshouldbetheupdatedtoken"
     assert authdb.get_refresh_token(user_id="5") == "thisshouldbechangedalso"
 
+def test_get_all_user_ids():
+    authdb = AuthDb(":memory:")
+    authdb.update_or_create_user(
+            user_id="100",
+            access_token="a100",
+            refresh_token="r100"
+    )
+    authdb.update_or_create_user(
+            user_id="333",
+            access_token="a333",
+            refresh_token="r333"
+    )
+    assert sorted(authdb.get_all_user_ids_slow()) == ["100", "333"]
+
 def test_read_and_write_from_multiple_threads():
     authdb = AuthDb(":memory:")
 

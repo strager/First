@@ -136,6 +136,19 @@ class AuthDb:
         refresh_token, = result_fetched
         return refresh_token
 
+    def get_all_user_ids_slow(self) -> typing.List[UserId]:
+        user_ids = []
+        with self.__lock:
+            cur = self.db.cursor()
+            result = cur.execute("SELECT user_id FROM twitch_tokens")
+            while True:
+                rows = result.fetchmany()
+                if not rows:
+                    break
+                for (user_id,) in rows:
+                    user_ids.append(user_id)
+        return user_ids
+
     def get_created_at_time(self, user_id: UserId) -> Time:
         with self.__lock:
             cur = self.db.cursor()
