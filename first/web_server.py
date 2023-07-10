@@ -25,6 +25,9 @@ class UnexpectedTwitchOAuthError(HTTPException):
     def description(self) -> str:
         return f"Error from Twitch: {self.error_description} (code: {self.error})"
 
+def create_app_for_testing(authdb: AuthDb = AuthDb(":memory:")) -> flask.Flask:
+    return create_app(authdb=authdb)
+
 def create_app(authdb: AuthDb = AuthDb()) -> flask.Flask:
     app = flask.Flask(__name__)
 

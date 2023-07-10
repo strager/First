@@ -9,7 +9,7 @@ twitch_config = first.config.cfg["twitch"]
 
 @pytest.fixture
 def web_app(authdb):
-    app = first.web_server.create_app(authdb=authdb)
+    app = first.web_server.create_app_for_testing(authdb=authdb)
     app.debug = True
     app = app.test_client()
     return app
