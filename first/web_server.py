@@ -2,7 +2,7 @@ import flask
 from uuid import uuid4
 from first.twitch import Twitch, AuthenticatedTwitch
 from urllib.parse import quote_plus
-from first.authdb import AuthDb, AuthDbUserTokenProvider
+from first.authdb import AuthDb, AuthDbUserTokenProvider, UserId
 import first.config
 from werkzeug.exceptions import HTTPException
 import logging
@@ -83,17 +83,7 @@ def create_app(authdb: AuthDb = AuthDb(), eventsub_websocket_manager: TwitchEven
             refresh_token=refresh_token,
         )
 
-        twitch = AuthenticatedTwitch(AuthDbUserTokenProvider(authdb, user_id))
-        eventsub_websocket_manager.stop_connections_for_user(user_id)
-        ws_connection = eventsub_websocket_manager.create_new_connection(twitch)
-        ws_connection.add_subscription(
-            type="channel.channel_points_custom_reward_redemption.add",
-            version="1",
-            condition={
-                "broadcaster_user_id": user_id,
-            },
-        )
-        ws_connection.start_thread()
+        start_eventsub_for_user(user_id)
 
         # TODO(strager): Redirect to the user's dashboard.
         return flask.redirect("/")
@@ -118,10 +108,27 @@ def create_app(authdb: AuthDb = AuthDb(), eventsub_websocket_manager: TwitchEven
         logger.error(error)
         return error.description, 500
 
+    def start_eventsub_for_user(user_id: UserId) -> None:
+        twitch = AuthenticatedTwitch(AuthDbUserTokenProvider(authdb, user_id))
+        eventsub_websocket_manager.stop_connections_for_user(user_id)
+        ws_connection = eventsub_websocket_manager.create_new_connection(twitch)
+        ws_connection.add_subscription(
+            type="channel.channel_points_custom_reward_redemption.add",
+            version="1",
+            condition={
+                "broadcaster_user_id": user_id,
+            },
+        )
+        ws_connection.start_thread()
 
     def get_twitch_oauth_redirect_uri() -> str:
         return flask.url_for(oauth_twitch.__name__, _external=True)
 
+    def set_up() -> None:
+        for user_id in authdb.get_all_user_ids_slow():
+            start_eventsub_for_user(user_id)
+
+    set_up()
     return app
 
 if __name__ == "__main__":
