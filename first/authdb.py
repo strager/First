@@ -18,6 +18,8 @@ class UserNotFoundError(Exception):
 class TokenProvider(typing.Protocol):
     def get_access_token(self) -> Token: ...
     def refresh_access_token(self) -> Token: ...
+    @property
+    def user_id(self) -> UserId: ...
 
 class AuthDbUserTokenProvider(TokenProvider):
     _authdb: "AuthDb"
@@ -38,6 +40,10 @@ class AuthDbUserTokenProvider(TokenProvider):
             refresh_token=refresh_result.new_refresh_token,
         )
         return refresh_result.new_access_token
+
+    @property
+    def user_id(self) -> UserId:
+        return self._user_id
 
 class AuthDb:
     db: sqlite3.Connection

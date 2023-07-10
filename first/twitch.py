@@ -55,6 +55,9 @@ class AuthenticatedTwitch:
     def __init__(self, auth_token_provider: "TokenProvider") -> None:
         self._auth_token_provider = auth_token_provider
 
+    def get_self_user_id_fast(self) -> "UserId":
+        return self._auth_token_provider.user_id
+
     def get_user_display_name_by_user_id(self, user_id: "UserId") -> str:
         data = self._get_json(f"https://api.twitch.tv/helix/users?id={quote_plus(user_id)}")
         # TODO(strager): Robust error handling.

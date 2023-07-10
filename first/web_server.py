@@ -1,13 +1,17 @@
 import flask
 from uuid import uuid4
-from first.twitch import Twitch
+from first.twitch import Twitch, AuthenticatedTwitch
 from urllib.parse import quote_plus
-from first.authdb import AuthDb
+from first.authdb import AuthDb, AuthDbUserTokenProvider
 import first.config
 from werkzeug.exceptions import HTTPException
 import logging
 import requests
 import typing
+from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, TwitchEventSubWebSocketThread
+
+# TODO(strager): Fancier logging.
+logging.basicConfig(level=logging.INFO)
 
 twitch_config = first.config.cfg["twitch"]
 
@@ -25,10 +29,10 @@ class UnexpectedTwitchOAuthError(HTTPException):
     def description(self) -> str:
         return f"Error from Twitch: {self.error_description} (code: {self.error})"
 
-def create_app_for_testing(authdb: AuthDb = AuthDb(":memory:")) -> flask.Flask:
-    return create_app(authdb=authdb)
+def create_app_for_testing(authdb: AuthDb = AuthDb(":memory:"), eventsub_websocket_manager: TwitchEventSubWebSocketManager = TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread)) -> flask.Flask:
+    return create_app(authdb=authdb, eventsub_websocket_manager=eventsub_websocket_manager)
 
-def create_app(authdb: AuthDb = AuthDb()) -> flask.Flask:
+def create_app(authdb: AuthDb = AuthDb(), eventsub_websocket_manager: TwitchEventSubWebSocketManager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread)) -> flask.Flask:
     app = flask.Flask(__name__)
 
     @app.route("/")
@@ -70,6 +74,18 @@ def create_app(authdb: AuthDb = AuthDb()) -> flask.Flask:
             access_token=access_token,
             refresh_token=refresh_token,
         )
+
+        twitch = AuthenticatedTwitch(AuthDbUserTokenProvider(authdb, user_id))
+        eventsub_websocket_manager.stop_connections_for_user(user_id)
+        ws_connection = eventsub_websocket_manager.create_new_connection(twitch)
+        ws_connection.add_subscription(
+            type="channel.channel_points_custom_reward_redemption.add",
+            version="1",
+            condition={
+                "broadcaster_user_id": user_id,
+            },
+        )
+        ws_connection.start_thread()
 
         # TODO(strager): Redirect to the user's dashboard.
         return flask.redirect("/")
