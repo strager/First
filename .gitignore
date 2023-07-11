@@ -3,3 +3,4 @@ __pycache__
 
 # Mentioned in first/config/config.example.toml:
 /auth.db
+/users.db
