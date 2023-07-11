@@ -3,7 +3,8 @@ import responses
 import threading
 import time
 import pytest
-from first.authdb import AuthDb, UserNotFoundError, AuthDbUserTokenProvider
+from first.authdb import AuthDb, AuthDbUserTokenProvider
+from first.errors import UserNotFoundError
 import urllib.parse
 import first.config
 

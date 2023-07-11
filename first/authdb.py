@@ -5,15 +5,13 @@ from datetime import datetime
 import typing
 from first.twitch import Twitch
 from first.config import cfg
+from first.errors import UserNotFoundError
 
 UserId = str
 Token = str
 Time = datetime
 
 authdb_config = cfg["authdb"]
-
-class UserNotFoundError(Exception):
-    pass
 
 class TokenProvider(typing.Protocol):
     def get_access_token(self) -> Token: ...
