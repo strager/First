@@ -3,3 +3,6 @@ class UserNotFoundError(Exception):
 
 class UniqueUserAlreadyExists(Exception):
     pass
+
+class RowNotFoundError(Exception):
+    pass

@@ -10,3 +10,6 @@ db = "auth.db"
 
 [usersdb]
 db = "users.db"
+
+[pointsdb]
+db = "points.db"
