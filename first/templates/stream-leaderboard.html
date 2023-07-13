@@ -1,0 +1,37 @@
+{% extends "skeletons/base.html" %}
+{% block title %}{{ stream_name }} leaderboards - First! Twitch app{% endblock %}
+
+{% block header %}
+{% endblock %}
+
+{% macro leaderboard_table(points_per_user) %}
+    <table class="stream-leaderboard">
+        <thead>
+            <tr>
+                <th>Viewer</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for (user_id, points) in points_per_user %}
+            <tr>
+                <!-- TODO(strager): Show user name instead. -->
+                <th>{{ user_id }}</th>
+                <td>{{ points }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endmacro %}
+
+{% block body %}
+    <section>
+        <h2>Top this month in {{ stream_name }}'s stream</h2>
+        {{ leaderboard_table(monthly_points) }}
+    </section>
+
+    <section>
+        <h2>All time leaderboard for {{ stream_name }}'s stream</h2>
+        {{ leaderboard_table(lifetime_points) }}
+    </section>
+{% endblock %}

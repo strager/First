@@ -63,13 +63,14 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
 
 def create_app_for_testing(
     authdb: AuthDb = AuthDb(":memory:"),
+    points_db: PointsDb = PointsDb(":memory:"),
     eventsub_websocket_manager: typing.Optional[TwitchEventSubWebSocketManager] = None,
     # Used only if eventsub_websocket_manager is None.
     eventsub_delegate: TwitchEventSubDelegate = stub_twitch_eventsub_delegate,
 ) -> flask.Flask:
     if eventsub_websocket_manager is None:
         eventsub_websocket_manager = TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread, eventsub_delegate)
-    return create_app_from_dependencies(authdb=authdb, eventsub_websocket_manager=eventsub_websocket_manager)
+    return create_app_from_dependencies(authdb=authdb, points_db=points_db, eventsub_websocket_manager=eventsub_websocket_manager)
 
 def create_app() -> flask.Flask:
     """Create the Flask app for production. Named 'create_app' because that's
@@ -80,11 +81,13 @@ def create_app() -> flask.Flask:
     eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
     return create_app_from_dependencies(
         authdb=AuthDb(),
+        points_db=points_db,
         eventsub_websocket_manager=eventsub_websocket_manager
     )
 
 def create_app_from_dependencies(
     authdb: AuthDb,
+    points_db: PointsDb,
     eventsub_websocket_manager: TwitchEventSubWebSocketManager,
 ) -> flask.Flask:
     app = flask.Flask(__name__)
@@ -96,6 +99,15 @@ def create_app_from_dependencies(
     @app.get("/login")
     def log_in_view():
         return flask.render_template('login.html')
+
+    @app.get("/stream/<broadcaster_id>")
+    def stream_leaderboard(broadcaster_id: UserId):
+        return flask.render_template(
+            'stream-leaderboard.html',
+            stream_name="TODO", # TODO(strager)
+            lifetime_points=points_db.get_lifetime_channel_points(broadcaster_id=broadcaster_id),
+            monthly_points=points_db.get_monthly_channel_points(broadcaster_id=broadcaster_id),
+        )
 
     @app.get("/admin")
     def admin_view():
