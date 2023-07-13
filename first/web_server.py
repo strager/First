@@ -9,6 +9,8 @@ import logging
 import requests
 import typing
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, TwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate, TwitchEventSubDelegate
+from first.pointsdb import PointsDb
+import datetime
 
 # TODO(strager): Fancier logging.
 logging.basicConfig(level=logging.INFO)
@@ -29,6 +31,36 @@ class UnexpectedTwitchOAuthError(HTTPException):
     def description(self) -> str:
         return f"Error from Twitch: {self.error_description} (code: {self.error})"
 
+class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
+    _points_db: PointsDb
+
+    def __init__(self, points_db: PointsDb) -> None:
+        self._points_db = points_db
+
+    def on_eventsub_notification(self,
+                                 subscription_type: str,
+                                 subscription_version: str,
+                                 event_data: typing.Dict[str, typing.Any]) -> None:
+        if subscription_type == "channel.channel_points_custom_reward_redemption.add":
+            assert subscription_version == "1"
+            # TODO(strager): reward_id<->level mapping should be configured
+            # per-streamer.
+            level = 1
+            self._points_db.insert_new_redemption(
+                broadcaster_id=event_data["broadcaster_user_id"],
+                redemption_id=event_data["id"],
+                user_id=event_data["user_id"],
+                # FIXME(strager): This should come from event_data["redeemed_at"] instead.
+                redeemed_at=datetime.datetime.now(),
+                level=level,
+            )
+        elif subscription_type == "channel.channel_points_custom_reward_redemption.update":
+            # TODO(#13): Handle rejected redemptions.
+            pass
+        else:
+            # Ignore.
+            pass
+
 def create_app_for_testing(
     authdb: AuthDb = AuthDb(":memory:"),
     eventsub_websocket_manager: typing.Optional[TwitchEventSubWebSocketManager] = None,
@@ -43,7 +75,8 @@ def create_app() -> flask.Flask:
     """Create the Flask app for production. Named 'create_app' because that's
     the name that Flask looks for.
     """
-    eventsub_delegate = stub_twitch_eventsub_delegate # TODO(strager)
+    points_db = PointsDb()
+    eventsub_delegate = PointsDbTwitchEventSubDelegate(points_db=points_db)
     eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
     return create_app_from_dependencies(
         authdb=AuthDb(),

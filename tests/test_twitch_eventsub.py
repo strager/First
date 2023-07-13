@@ -1,6 +1,8 @@
 from first.authdb import Token, TokenProvider
+from first.pointsdb import PointsDb
 from first.twitch import AuthenticatedTwitch
 from first.twitch_eventsub import TwitchEventSubWebSocketThread, TwitchEventSubDelegate
+from first.web_server import PointsDbTwitchEventSubDelegate
 import contextlib
 import copy
 import json
@@ -119,6 +121,33 @@ def test_eventsub_thread_calls_delegate_on_receiving_channel_point_redemption(ex
         assert received_event_data.get("reward", {}).get("id") == "b34cd9ba-40de-4953-80f8-57362376f8e0"
         assert received_event_data.get("redeemed_at") == "2023-07-13T11:49:36.525368238Z"
 
+def test_eventsub_delegate_stores_data_in_pointsdb():
+    points_db = PointsDb(":memory:")
+    delegate = PointsDbTwitchEventSubDelegate(points_db)
+    delegate.on_eventsub_notification(
+        subscription_type="channel.channel_points_custom_reward_redemption.add",
+        subscription_version="1",
+        event_data={
+            "broadcaster_user_id": "123",
+            "broadcaster_user_login": "strimmer",
+            "broadcaster_user_name": "strimmer",
+            "id": "addae886-719e-4427-8f19-8152a260a806",
+            "user_id": "456",
+            "user_login": "chatter",
+            "user_name": "chatter",
+            "user_input": "",
+            "status": "fulfilled",
+            "redeemed_at": "2023-07-13T11:49:36.525368238Z",
+            "reward": {
+                "id": "b34cd9ba-40de-4953-80f8-57362376f8e0",
+                "title": "first",
+                "prompt": "Be first in chat!",
+                "cost": 1,
+            },
+        },
+    )
+    leaderboard = points_db.get_lifetime_channel_points(broadcaster_id="123")
+    assert leaderboard == [("456", 1)]
 
 class FailingTokenProvider(TokenProvider):
     def get_access_token(self) -> Token:
@@ -126,4 +155,3 @@ class FailingTokenProvider(TokenProvider):
 
     def refresh_access_token(self) -> Token:
         raise AssertionError("should not be called")
-
