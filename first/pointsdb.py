@@ -32,7 +32,7 @@ class PointsDb:
                 "CREATE TABLE IF NOT EXISTS "
                 "redemptions("
                     "broadcaster_id, "
-                    "reward_id UNIQUE, "
+                    "redemption_id UNIQUE, "
                     "user_id, "
                     "redeemed_at, "
                     "level"
@@ -43,13 +43,13 @@ class PointsDb:
         self.__lock = threading.Lock()
 
     def insert_new_redemption(self, broadcaster_id: StreamerId,
-                              reward_id: RewardId, user_id: UserId,
+                              redemption_id: RewardId, user_id: UserId,
                               redeemed_at: Date, level: Level):
         with self.__lock:
             cur = self.db.cursor()
             data = {
                 "broadcaster_id": broadcaster_id,
-                "reward_id": reward_id,
+                "redemption_id": redemption_id,
                 "user_id": user_id,
                 "redeemed_at": redeemed_at,
                 "level": level,
@@ -57,8 +57,8 @@ class PointsDb:
             cur.execute(
                 (
                     "INSERT INTO redemptions "
-                    "(broadcaster_id, reward_id, user_id, redeemed_at, level) "
-                    "VALUES(:broadcaster_id, :reward_id, :user_id, :redeemed_at, :level)"
+                    "(broadcaster_id, redemption_id, user_id, redeemed_at, level) "
+                    "VALUES(:broadcaster_id, :redemption_id, :user_id, :redeemed_at, :level)"
                 ), data)
 
             self.db.commit()
