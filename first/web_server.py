@@ -8,7 +8,7 @@ from werkzeug.exceptions import HTTPException
 import logging
 import requests
 import typing
-from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, TwitchEventSubWebSocketThread
+from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, TwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate, TwitchEventSubDelegate
 
 # TODO(strager): Fancier logging.
 logging.basicConfig(level=logging.INFO)
@@ -29,10 +29,23 @@ class UnexpectedTwitchOAuthError(HTTPException):
     def description(self) -> str:
         return f"Error from Twitch: {self.error_description} (code: {self.error})"
 
-def create_app_for_testing(authdb: AuthDb = AuthDb(":memory:"), eventsub_websocket_manager: TwitchEventSubWebSocketManager = TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread)) -> flask.Flask:
-    return create_app(authdb=authdb, eventsub_websocket_manager=eventsub_websocket_manager)
+def create_app_for_testing(
+    authdb: AuthDb = AuthDb(":memory:"),
+    eventsub_delegate: TwitchEventSubDelegate = stub_twitch_eventsub_delegate,
+    eventsub_websocket_manager: TwitchEventSubWebSocketManager = None,
+) -> flask.Flask:
+    if eventsub_websocket_manager is None:
+        eventsub_websocket_manager = TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread, eventsub_delegate)
+    return create_app(authdb=authdb, eventsub_delegate=eventsub_delegate, eventsub_websocket_manager=eventsub_websocket_manager)
 
-def create_app(authdb: AuthDb = AuthDb(), eventsub_websocket_manager: TwitchEventSubWebSocketManager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread)) -> flask.Flask:
+def create_app(
+    authdb: AuthDb = AuthDb(),
+    eventsub_delegate: TwitchEventSubDelegate = stub_twitch_eventsub_delegate, # TODO(strager)
+    eventsub_websocket_manager: TwitchEventSubWebSocketManager = None,
+) -> flask.Flask:
+    if eventsub_websocket_manager is None:
+        eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
+
     app = flask.Flask(__name__)
 
     @app.route("/")

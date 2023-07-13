@@ -4,7 +4,7 @@ import first.web_server
 import urllib.parse
 import first.config
 from first.authdb import AuthDb, UserNotFoundError
-from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread
+from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
 
 twitch_config = first.config.cfg["twitch"]
 
@@ -22,7 +22,7 @@ def authdb():
 
 @pytest.fixture
 def websocket_manager():
-    return TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread)
+    return TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate)
 
 def test_log_in_post_redirects_to_twitch(web_app):
     res = web_app.post("/login")

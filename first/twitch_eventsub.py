@@ -10,6 +10,29 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
+class TwitchEventSubDelegate(typing.Protocol):
+    def on_eventsub_notification(self,
+                                 subscription_type: str,
+                                 subscription_version: str,
+                                 event_data: typing.Dict[str, typing.Any]) -> None:
+        """Called when TwitchEventSubWebSocketThread receives an EventSub notification from the Twitch server.
+
+        Called on an arbitrary thread. This function must be thread-safe.
+
+        subscription_type: "channel.channel_points_custom_reward_redemption.add"
+        for example.
+
+        subscription_version: Version code of subscription_type.
+
+        event_data: The "event" object in the payload of the notification. The
+        schema depends on subscription_type and subscription_version.
+
+        For a list of subscription_type-s, corresponding subscription_version-s,
+        and event_data schemas, see Twitch's EventSub documentation:
+        https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/
+        """
+        ...
+
 class TwitchEventSubWebSocketManager:
     """Zero or more Twitch's EventSub connections.
 
@@ -20,14 +43,16 @@ class TwitchEventSubWebSocketManager:
 
     _lock: threading.Lock
     _create_thread: typing.Callable[[AuthenticatedTwitch], "TwitchEventSubWebSocketThread"]
+    _delegate: TwitchEventSubDelegate
 
     # Protected by _lock:
     _threads: "typing.List[TwitchEventSubWebSocketThread]"
     _threads_which_failed_to_stop: "typing.List[TwitchEventSubWebSocketThread]"
 
-    def __init__(self, factory: typing.Callable[[AuthenticatedTwitch], "TwitchEventSubWebSocketThread"]) -> None:
+    def __init__(self, factory: typing.Callable[[AuthenticatedTwitch, TwitchEventSubDelegate], "TwitchEventSubWebSocketThread"], delegate: TwitchEventSubDelegate) -> None:
         self._lock = threading.Lock()
         self._create_thread = factory
+        self._delegate = delegate
         self._threads = []
         self._threads_which_failed_to_stop = []
 
@@ -38,7 +63,7 @@ class TwitchEventSubWebSocketManager:
         The returned TwitchEventSubWebSocketThread has not started yet.
         You should call add_subscription then start_thread.
         """
-        thread = self._create_thread(twitch)
+        thread = self._create_thread(twitch, self._delegate)
         with self._lock:
             self._threads.append(thread)
         return thread
@@ -94,15 +119,17 @@ class TwitchEventSubWebSocketManager:
 class TwitchEventSubWebSocketThreadBase:
     _lock: threading.Lock
     _twitch: AuthenticatedTwitch
+    _delegate: TwitchEventSubDelegate
     _created_timestamp: datetime.datetime
 
     # Protected by _lock:
     _last_connected_timestamp: typing.Optional[datetime.datetime] = None
     _last_received_message_timestamp: typing.Optional[datetime.datetime] = None
 
-    def __init__(self, twitch: AuthenticatedTwitch) -> None:
+    def __init__(self, twitch: AuthenticatedTwitch, delegate: TwitchEventSubDelegate) -> None:
         self._lock = threading.Lock()
         self._twitch = twitch
+        self._delegate = delegate
         self._created_timestamp = datetime.datetime.now()
 
     @property
@@ -128,6 +155,8 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     https://websockets.readthedocs.io/en/stable/reference/sync/client.html
     """
 
+    _websocket_uri: str
+
     # Protected by _lock:
     _subscriptions: "typing.List[_Subscription]"
     _thread: typing.Optional[threading.Thread] = None
@@ -136,9 +165,10 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     # Protected by _lock; assignable only by background thread:
     _client: typing.Optional[websockets.sync.client.ClientConnection] = None
 
-    def __init__(self, twitch: AuthenticatedTwitch) -> None:
-        super().__init__(twitch)
+    def __init__(self, twitch: AuthenticatedTwitch, delegate: TwitchEventSubDelegate, websocket_uri: str = "wss://eventsub.wss.twitch.tv/ws") -> None:
+        super().__init__(twitch, delegate)
         self._subscriptions = []
+        self._websocket_uri = websocket_uri
 
     class _Subscription(typing.NamedTuple):
         type: str
@@ -210,7 +240,7 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
             if self._should_stop:
                 return None
 
-        client = websockets.sync.client.connect("wss://eventsub.wss.twitch.tv/ws")
+        client = websockets.sync.client.connect(self._websocket_uri)
 
         with self._lock:
             self._last_connected_timestamp = datetime.datetime.now()
@@ -248,7 +278,8 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
         with self._lock:
             self._last_received_message_timestamp = datetime.datetime.now()
         logger.info("incoming message: %s", message)
-        if message["metadata"]["message_type"] == "session_welcome":
+        message_type = message["metadata"]["message_type"]
+        if message_type == "session_welcome":
             session_id = message['payload']['session']['id']
             with self._lock:
                 subscriptions = list(self._subscriptions)
@@ -262,6 +293,16 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
                         "session_id": session_id,
                     },
                 })
+        elif message_type == "notification":
+            payload = message["payload"]
+            subscription = payload["subscription"]
+            self._delegate.on_eventsub_notification(
+                subscription_type=subscription["type"],
+                subscription_version=subscription["version"],
+                event_data=payload["event"],
+            )
+        else:
+            logger.warning("unrecognized EventSub message type: %s", message_type)
 
 class FakeTwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     """Like TwitchEventSubWebSocketThread, but with behavior stubbed out
@@ -286,3 +327,15 @@ class FakeTwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     def running(self) -> bool:
         with self._lock:
             return self._thread_is_running
+
+class StubTwitchEventSubDelegate(TwitchEventSubDelegate):
+    """For testing."""
+
+    def on_eventsub_notification(self,
+                                 subscription_type: str,
+                                 subscription_version: str,
+                                 event_data: typing.Dict[str, typing.Any]) -> None:
+        # Do nothing.
+        pass
+
+stub_twitch_eventsub_delegate = StubTwitchEventSubDelegate()

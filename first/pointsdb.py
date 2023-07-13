@@ -42,7 +42,9 @@ class PointsDb:
 
         self.__lock = threading.Lock()
 
-    def insert_new_redemption(self, broadcaster_id: StreamerId, reward_id: RewardId, user_id: UserId, redeemed_at: Date, level: Level):
+    def insert_new_redemption(self, broadcaster_id: StreamerId,
+                              reward_id: RewardId, user_id: UserId,
+                              redeemed_at: Date, level: Level):
         with self.__lock:
             cur = self.db.cursor()
             data = {
