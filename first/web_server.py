@@ -31,21 +31,29 @@ class UnexpectedTwitchOAuthError(HTTPException):
 
 def create_app_for_testing(
     authdb: AuthDb = AuthDb(":memory:"),
+    eventsub_websocket_manager: typing.Optional[TwitchEventSubWebSocketManager] = None,
+    # Used only if eventsub_websocket_manager is None.
     eventsub_delegate: TwitchEventSubDelegate = stub_twitch_eventsub_delegate,
-    eventsub_websocket_manager: TwitchEventSubWebSocketManager = None,
 ) -> flask.Flask:
     if eventsub_websocket_manager is None:
         eventsub_websocket_manager = TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread, eventsub_delegate)
-    return create_app(authdb=authdb, eventsub_delegate=eventsub_delegate, eventsub_websocket_manager=eventsub_websocket_manager)
+    return create_app_from_dependencies(authdb=authdb, eventsub_websocket_manager=eventsub_websocket_manager)
 
-def create_app(
-    authdb: AuthDb = AuthDb(),
-    eventsub_delegate: TwitchEventSubDelegate = stub_twitch_eventsub_delegate, # TODO(strager)
-    eventsub_websocket_manager: TwitchEventSubWebSocketManager = None,
+def create_app() -> flask.Flask:
+    """Create the Flask app for production. Named 'create_app' because that's
+    the name that Flask looks for.
+    """
+    eventsub_delegate = stub_twitch_eventsub_delegate # TODO(strager)
+    eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
+    return create_app_from_dependencies(
+        authdb=AuthDb(),
+        eventsub_websocket_manager=eventsub_websocket_manager
+    )
+
+def create_app_from_dependencies(
+    authdb: AuthDb,
+    eventsub_websocket_manager: TwitchEventSubWebSocketManager,
 ) -> flask.Flask:
-    if eventsub_websocket_manager is None:
-        eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
-
     app = flask.Flask(__name__)
 
     @app.route("/")
