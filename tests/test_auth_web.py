@@ -34,7 +34,7 @@ def websocket_manager():
 
 def test_log_in_post_redirects_to_twitch(web_app):
     res = web_app.post("/login")
-    assert res.status_code, 303 == "should redirect with a GET request"
+    assert res.status_code == 303, "should redirect with a GET request"
     url = urllib.parse.urlparse(res.headers["location"])
     assert url._replace(fragment="", query="").geturl() == "https://id.twitch.tv/oauth2/authorize"
     parameters = urllib.parse.parse_qs(url.query)
