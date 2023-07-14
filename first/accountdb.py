@@ -24,7 +24,8 @@ class FirstAccountDb(DbBase):
                 "CREATE TABLE IF NOT EXISTS "
                 "account("
                     "account_id INTEGER PRIMARY KEY NOT NULL, "
-                    "twitch_user_id UNIQUE"
+                    "twitch_user_id UNIQUE, "
+                    f"{self._created_at_and_updated_at_column_definitions_sql()}"
                 ")"
             )
         )
