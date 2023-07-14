@@ -2,6 +2,7 @@ first/config/config.toml
 __pycache__
 
 # Mentioned in first/config/config.example.toml:
+/accounts.db
 /auth.db
 /users.db
 /points.db
