@@ -276,7 +276,6 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     def _handle_json_message(self, message) -> None:
         with self._lock:
             self._last_received_message_timestamp = datetime.datetime.now()
-        logger.info("incoming message: %s", message)
         message_type = message["metadata"]["message_type"]
         if message_type == "session_welcome":
             session_id = message['payload']['session']['id']
@@ -300,8 +299,12 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
                 subscription_version=subscription["version"],
                 event_data=payload["event"],
             )
+        elif message_type == "session_keepalive":
+            # Ignore.
+            pass
         else:
             logger.warning("unrecognized EventSub message type: %s", message_type)
+            logger.debug("unrecognized EventSub message: %s", message)
 
 class FakeTwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
     """Like TwitchEventSubWebSocketThread, but with behavior stubbed out
