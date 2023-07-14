@@ -2,9 +2,9 @@ import flask
 import secrets
 import binascii
 from uuid import uuid4
-from first.twitch import Twitch, AuthenticatedTwitch
+from first.twitch import Twitch, AuthenticatedTwitch, TwitchUserId
 from urllib.parse import quote_plus
-from first.authdb import TwitchAuthDb, TwitchAuthDbUserTokenProvider, TwitchUserId
+from first.authdb import TwitchAuthDb, TwitchAuthDbUserTokenProvider
 import first.config
 from werkzeug.exceptions import HTTPException
 import logging

@@ -5,10 +5,10 @@ import typing
 from datetime import datetime
 from first.config import cfg
 from first.errors import RowNotFoundError
+from first.twitch import TwitchUserId
 
 RewardId = str
 StreamerId = str
-TwitchUserId = str
 Date = datetime
 
 points_config = cfg["pointsdb"]

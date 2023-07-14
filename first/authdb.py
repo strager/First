@@ -3,11 +3,10 @@ import sqlite3
 import threading
 from datetime import datetime
 import typing
-from first.twitch import Twitch
+from first.twitch import Twitch, TwitchUserId
 from first.config import cfg
 from first.errors import UserNotFoundError
 
-TwitchUserId = str
 Token = str
 Time = datetime
 

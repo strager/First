@@ -1,5 +1,4 @@
-from first.twitch import AuthenticatedTwitch
-from first.authdb import TwitchUserId
+from first.twitch import AuthenticatedTwitch, TwitchUserId
 import json
 import logging
 import threading

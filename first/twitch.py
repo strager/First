@@ -5,7 +5,9 @@ import first.config
 import typing
 
 if typing.TYPE_CHECKING:
-    from first.authdb import Token, TwitchUserId, TokenProvider
+    from first.authdb import Token, TokenProvider
+
+TwitchUserId = str
 
 twitch_config = first.config.cfg["twitch"]
 

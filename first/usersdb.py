@@ -4,8 +4,7 @@ import threading
 import typing
 from first.config import cfg
 from first.errors import UserNotFoundError, UniqueUserAlreadyExists
-
-TwitchUserId = str
+from first.twitch import TwitchUserId
 
 users_config = cfg["usersdb"]
 
