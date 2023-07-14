@@ -10,7 +10,6 @@ RewardId = str
 StreamerId = str
 UserId = str
 Date = datetime
-Level = int
 
 points_config = cfg["pointsdb"]
 
@@ -35,6 +34,7 @@ class PointsDb:
                     "redemption_id UNIQUE, "
                     "user_id, "
                     "redeemed_at, "
+                    "points, "
                     "level"
                 ")"
             )
@@ -44,7 +44,7 @@ class PointsDb:
 
     def insert_new_redemption(self, broadcaster_id: StreamerId,
                               redemption_id: RewardId, user_id: UserId,
-                              redeemed_at: Date, level: Level):
+                              redeemed_at: Date, points: int, level: int):
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -52,13 +52,14 @@ class PointsDb:
                 "redemption_id": redemption_id,
                 "user_id": user_id,
                 "redeemed_at": redeemed_at,
+                "points": points,
                 "level": level,
             }
             cur.execute(
                 (
                     "INSERT INTO redemptions "
-                    "(broadcaster_id, redemption_id, user_id, redeemed_at, level) "
-                    "VALUES(:broadcaster_id, :redemption_id, :user_id, :redeemed_at, :level)"
+                    "(broadcaster_id, redemption_id, user_id, redeemed_at, points, level) "
+                    "VALUES(:broadcaster_id, :redemption_id, :user_id, :redeemed_at, :points, :level)"
                 ), data)
 
             self.db.commit()
@@ -71,7 +72,7 @@ class PointsDb:
             }
             result = cur.execute(
                 (
-                    "SELECT user_id, SUM(level) FROM redemptions "
+                    "SELECT user_id, SUM(points) FROM redemptions "
                     "WHERE broadcaster_id = :broadcaster_id "
                     "AND redeemed_at >= date('now', 'start of month') "
                     "AND redeemed_at < date('now', 'start of month', '+1 month') "
@@ -92,7 +93,7 @@ class PointsDb:
             }
             result = cur.execute(
                 (
-                    "SELECT user_id, SUM(level) FROM redemptions "
+                    "SELECT user_id, SUM(points) FROM redemptions "
                     "WHERE broadcaster_id = :broadcaster_id "
                     "GROUP BY user_id"
                 ),
@@ -111,7 +112,7 @@ class PointsDb:
             }
             result = cur.execute(
                 (
-                    "SELECT SUM(level) FROM redemptions "
+                    "SELECT SUM(points) FROM redemptions "
                     "WHERE user_id = :user_id "
                     "AND redeemed_at >= date('now', 'start of month') "
                     "AND redeemed_at < date('now', 'start of month', '+1 month') "
@@ -133,7 +134,7 @@ class PointsDb:
             }
             result = cur.execute(
                 (
-                    "SELECT SUM(level) FROM redemptions "
+                    "SELECT SUM(points) FROM redemptions "
                     "WHERE user_id = :user_id "
                     "GROUP BY user_id"
                 ),
@@ -144,3 +145,35 @@ class PointsDb:
             raise RowNotFoundError
         points, = result_fetched
         return points
+
+    def get_streamers_monthly_leaderboard(self) -> typing.List[typing.Tuple[StreamerId, int]]:
+        with self.__lock:
+            cur = self.db.cursor()
+            result = cur.execute(
+                (
+                    "SELECT broadcaster_id, COUNT(points) FROM redemptions "
+                    "WHERE level = 1 "
+                    "AND redeemed_at >= date('now', 'start of month') "
+                    "AND redeemed_at < date('now', 'start of month', '+1 month') "
+                    "GROUP BY broadcaster_id"
+                ),
+            )
+            result_fetched = result.fetchall()
+        if result_fetched is None:
+            raise RowNotFoundError
+        return result_fetched
+
+    def get_streamers_lifetime_leaderboard(self) -> typing.List[typing.Tuple[StreamerId, int]]:
+        with self.__lock:
+            cur = self.db.cursor()
+            result = cur.execute(
+                (
+                    "SELECT broadcaster_id, COUNT(points) FROM redemptions "
+                    "WHERE level = 1 "
+                    "GROUP BY broadcaster_id"
+                ),
+            )
+            result_fetched = result.fetchall()
+        if result_fetched is None:
+            raise RowNotFoundError
+        return result_fetched

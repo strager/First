@@ -147,7 +147,7 @@ def test_eventsub_delegate_stores_data_in_pointsdb():
         },
     )
     leaderboard = points_db.get_lifetime_channel_points(broadcaster_id="123")
-    assert leaderboard == [("456", 1)]
+    assert leaderboard == [("456", 5)]
 
 class FailingTokenProvider(TokenProvider):
     def get_access_token(self) -> Token:

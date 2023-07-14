@@ -51,12 +51,14 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
             # TODO(strager): reward_id<->level mapping should be configured
             # per-streamer.
             level = 1
+            points = 5
             self._points_db.insert_new_redemption(
                 broadcaster_id=event_data["broadcaster_user_id"],
                 redemption_id=event_data["id"],
                 user_id=event_data["user_id"],
                 # FIXME(strager): This should come from event_data["redeemed_at"] instead.
                 redeemed_at=datetime.datetime.now(),
+                points=points,
                 level=level,
             )
         elif subscription_type == "channel.channel_points_custom_reward_redemption.update":
