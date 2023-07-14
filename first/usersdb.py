@@ -1,4 +1,4 @@
-"""UsersDb"""
+"""Twitch Users Db"""
 import sqlite3
 import threading
 import typing
@@ -8,7 +8,7 @@ from first.twitch import TwitchUserId
 
 users_config = cfg["usersdb"]
 
-class UsersDb:
+class TwitchUsersDb:
     db: sqlite3.Connection
 
     # See NOTE[TwitchAuthDb-lock].
