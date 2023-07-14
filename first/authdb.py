@@ -5,6 +5,7 @@ from datetime import datetime
 import typing
 from first.twitch import Twitch, TwitchUserId
 from first.config import cfg
+from first.db import DbBase
 from first.errors import UserNotFoundError
 
 Token = str
@@ -42,21 +43,14 @@ class TwitchAuthDbUserTokenProvider(TokenProvider):
     def user_id(self) -> TwitchUserId:
         return self._user_id
 
-class TwitchAuthDb:
+class TwitchAuthDb(DbBase):
     db: sqlite3.Connection
 
-    # NOTE[TwitchAuthDb-lock]: __lock serializes access to self.db, but does not
-    # synchronize other instances of TwitchAuthDb with the same database file.
-    #
-    # sqlite3 can serialize calls automatically (sqlite3.threadsafety == 3), but
-    # this is a build-time setting for CPython this not guaranteed to be
-    # enabled. Therefore, we must serialize/lock ourselves.
-    __lock: threading.Lock
-
     def __init__(self, db=authdb_config["db"]):
+        super().__init__()
         self.db = sqlite3.connect(
             db,
-            # See NOTE[TwitchAuthDb-lock].
+            # See NOTE[DbBase-lock].
             check_same_thread=False,
         )
         cur = self.db.cursor()
@@ -83,15 +77,13 @@ class TwitchAuthDb:
             )
         )
 
-        self.__lock = threading.Lock()
-
 
     def update_or_create_user(self, user_id: TwitchUserId, access_token: Token, refresh_token: Token):
         """
         If user does not exist it creates a new one.
         If it exists, it just updates the tokens.
         """
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,
@@ -108,7 +100,7 @@ class TwitchAuthDb:
             self.db.commit()
 
     def get_access_token(self, user_id: TwitchUserId) -> Token:
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,
@@ -121,7 +113,7 @@ class TwitchAuthDb:
         return access_token
 
     def get_refresh_token(self, user_id: TwitchUserId) -> Token:
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,
@@ -135,7 +127,7 @@ class TwitchAuthDb:
 
     def get_all_user_ids_slow(self) -> typing.List[TwitchUserId]:
         user_ids = []
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             result = cur.execute("SELECT user_id FROM twitch_tokens")
             while True:
@@ -147,7 +139,7 @@ class TwitchAuthDb:
         return user_ids
 
     def get_created_at_time(self, user_id: TwitchUserId) -> Time:
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,
@@ -158,7 +150,7 @@ class TwitchAuthDb:
         return created_at
 
     def get_updated_at_time(self, user_id: TwitchUserId) -> Time:
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,

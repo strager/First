@@ -3,21 +3,20 @@ import sqlite3
 import threading
 import typing
 from first.config import cfg
+from first.db import DbBase
 from first.errors import UserNotFoundError, UniqueUserAlreadyExists
 from first.twitch import TwitchUserId
 
 users_config = cfg["usersdb"]
 
-class TwitchUsersDb:
+class TwitchUsersDb(DbBase):
     db: sqlite3.Connection
 
-    # See NOTE[TwitchAuthDb-lock].
-    __lock: threading.Lock
-
     def __init__(self, db=users_config["db"]):
+        super().__init__()
         self.db = sqlite3.connect(
             db,
-            # See NOTE[TwitchAuthDb-lock].
+            # See NOTE[DbBase-lock].
             check_same_thread=False,
         )
         cur = self.db.cursor()
@@ -32,10 +31,10 @@ class TwitchUsersDb:
             )
         )
 
-        self.__lock = threading.Lock()
+        self._lock = threading.Lock()
 
     def insert_new_user(self, user_id: TwitchUserId, user_login: str, user_name: str):
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,
@@ -52,7 +51,7 @@ class TwitchUsersDb:
                 raise UniqueUserAlreadyExists
 
     def get_user_login_from_id(self, user_id: TwitchUserId) -> str:
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,
@@ -65,7 +64,7 @@ class TwitchUsersDb:
         return login
 
     def get_user_name_from_id(self, user_id: TwitchUserId) -> str:
-        with self.__lock:
+        with self._lock:
             cur = self.db.cursor()
             data = {
                 "user_id": user_id,
