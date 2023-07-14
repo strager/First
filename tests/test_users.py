@@ -1,6 +1,6 @@
 import pytest
 import threading
-from first.usersdb import UsersDb
+from first.usersdb import TwitchUsersDb
 from first.config import cfg
 from first.errors import UniqueUserAlreadyExists
 
@@ -8,7 +8,7 @@ users_config = cfg["usersdb"]
 
 
 def test_insert_new_user():
-    usersdb = UsersDb(":memory:")
+    usersdb = TwitchUsersDb(":memory:")
     usersdb.insert_new_user(
             user_id="5",
             user_login="potato",
@@ -18,7 +18,7 @@ def test_insert_new_user():
     assert "Potato" == usersdb.get_user_name_from_id(user_id="5")
 
 def test_insert_existing_user():
-    usersdb = UsersDb(":memory:")
+    usersdb = TwitchUsersDb(":memory:")
     usersdb.insert_new_user(
             user_id="5",
             user_login="potato",
@@ -34,7 +34,7 @@ def test_insert_existing_user():
         )
 
 def test_insert_existing_user_different_name():
-    usersdb = UsersDb(":memory:")
+    usersdb = TwitchUsersDb(":memory:")
     usersdb.insert_new_user(
             user_id="5",
             user_login="potato",
