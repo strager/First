@@ -7,6 +7,8 @@ import first.config
 from first.accountdb import FirstAccountDb
 from first.authdb import TwitchAuthDb, UserNotFoundError
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
+from .mock_config import set_admin_password
+from .http_basic_auth import http_basic_auth_headers, base64_encode_str
 
 twitch_config = first.config.cfg["twitch"]
 
@@ -163,6 +165,20 @@ def test_oauth_twitch_success_logs_in_with_first_account(web_app, authdb, accoun
     )
     assert account_id is not None
     # Ensure the user is now logged into the account via a cookie.
+    whoami_response = web_app.get("/api/whoami")
+    whoami_data = json.loads(whoami_response.text)
+    assert whoami_data.get('account_id') == account_id
+
+def test_admin_impersonate_changes_account_id(web_app, account_db, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="1234")
+    assert account_id is not None
+
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+
     whoami_response = web_app.get("/api/whoami")
     whoami_data = json.loads(whoami_response.text)
     assert whoami_data.get('account_id') == account_id

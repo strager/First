@@ -1,11 +1,10 @@
 import base64
 import pytest
-import first.config
 import first.web_server
 from first.authdb import TwitchAuthDb, UserNotFoundError
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
-
-website_config = first.config.cfg["website"]
+from .mock_config import set_admin_password
+from .http_basic_auth import http_basic_auth_headers, base64_encode_str
 
 @pytest.fixture
 def authdb():
@@ -43,23 +42,13 @@ def test_admin_pages_require_authentication(web_app):
         assert challenge.startswith("Basic ") or challenge == "Basic", f"challenge: {challenge!r}"
         assert 'realm="First! admin"' in challenge
 
-@pytest.fixture
-def set_admin_password():
-    def set(new_password: str) -> None:
-        website_config["admin_password"] = new_password
-    old_password = website_config["admin_password"]
-    yield set
-    website_config["admin_password"] = old_password
-
 def test_admin_pages_work_with_correct_password(web_app, set_admin_password):
     password = "hunter12"
     set_admin_password(password)
     for endpoint in admin_endpoints:
         # Username shouldn't matter to the server.
         for username in ["admin", "root", "", "asdf"]:
-            response = web_app.get(endpoint, headers={
-                "Authorization": f"Basic {base64_encode_str(f'{username}:{password}')}",
-            })
+            response = web_app.get(endpoint, headers=http_basic_auth_headers(username, password))
             assert response.status_code == 200, "should be authorized"
 
 def test_admin_pages_fail_with_incorrect_password(web_app, set_admin_password):
@@ -69,9 +58,7 @@ def test_admin_pages_fail_with_incorrect_password(web_app, set_admin_password):
     for endpoint in admin_endpoints:
         # Username shouldn't matter to the server.
         for username in ["admin", "root", "", "asdf"]:
-            response = web_app.get(endpoint, headers={
-                "Authorization": f"Basic {base64_encode_str(f'{username}:{wrong_password}')}",
-            })
+            response = web_app.get(endpoint, headers=http_basic_auth_headers(username, wrong_password))
             assert response.status_code == 401, "should be unauthorized"
 
 def test_admin_pages_fail_with_malformed_password_header(web_app, set_admin_password):
@@ -86,6 +73,3 @@ def test_admin_pages_fail_with_malformed_password_header(web_app, set_admin_pass
             "Authorization": www_authenticate_header,
         })
         assert response.status_code == 401, "should be unauthorized"
-
-def base64_encode_str(plaintext: str) -> str:
-    return base64.b64encode(plaintext.encode("utf-8")).decode("ascii")

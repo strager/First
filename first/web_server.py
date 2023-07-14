@@ -15,7 +15,7 @@ from first.pointsdb import PointsDb
 import datetime
 import functools
 import base64
-from first.accountdb import FirstAccountDb
+from first.accountdb import FirstAccountDb, FirstAccountId
 
 # TODO(strager): Fancier logging.
 logging.basicConfig(level=logging.INFO)
@@ -130,6 +130,16 @@ def create_app_from_dependencies(
     @requires_admin_auth
     def admin_eventsub():
         return flask.render_template('admin/eventsub.html', eventsub_connections=eventsub_websocket_manager.get_all_threads_for_testing())
+
+    @app.post("/admin/impersonate")
+    @requires_admin_auth
+    def admin_impersonate():
+        account_id_string: typing.Optional[str] = flask.request.form.get('account_id', None)
+        account_id: typing.Optional[FirstAccountId] = None if account_id_string is None else int(account_id_string)
+        flask.session['account_id'] = account_id
+
+        # TODO(strager): Redirect to the same place as if the user logged in.
+        return flask.redirect("/")
 
     @app.get("/oauth/twitch")
     def oauth_twitch():
