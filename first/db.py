@@ -1,3 +1,4 @@
+import sqlite3
 import threading
 
 class DbBase:
@@ -15,5 +16,21 @@ class DbBase:
     # enabled. Therefore, we must serialize/lock ourselves.
     _lock: threading.Lock
 
+    db: sqlite3.Connection
+
     def __init__(self) -> None:
         self._lock = threading.Lock()
+
+    def _create_sqlite3_database(self, path: str) -> None:
+        """Create a new database file or open an existing database file.
+
+        If path is ":memory:", an in-memory database is created instead of a
+        regular file.
+
+        This function assigns to self.db.
+        """
+        self.db = sqlite3.connect(
+            path,
+            # See NOTE[DbBase-lock].
+            check_same_thread=False,
+        )

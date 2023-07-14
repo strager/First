@@ -14,11 +14,7 @@ class TwitchUsersDb(DbBase):
 
     def __init__(self, db=users_config["db"]):
         super().__init__()
-        self.db = sqlite3.connect(
-            db,
-            # See NOTE[DbBase-lock].
-            check_same_thread=False,
-        )
+        self._create_sqlite3_database(db)
         cur = self.db.cursor()
         cur.execute(
             (

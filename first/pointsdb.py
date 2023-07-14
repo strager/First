@@ -15,15 +15,9 @@ Date = datetime
 points_config = cfg["pointsdb"]
 
 class PointsDb(DbBase):
-    db: sqlite3.Connection
-
     def __init__(self, db=points_config["db"]):
         super().__init__()
-        self.db = sqlite3.connect(
-            db,
-            # See NOTE[DbBase-lock].
-            check_same_thread=False,
-        )
+        self._create_sqlite3_database(db)
         cur = self.db.cursor()
         cur.execute(
             (
