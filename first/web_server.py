@@ -1,4 +1,6 @@
 import flask
+import secrets
+import binascii
 from uuid import uuid4
 from first.twitch import Twitch, AuthenticatedTwitch
 from urllib.parse import quote_plus
@@ -11,11 +13,14 @@ import typing
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, TwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate, TwitchEventSubDelegate
 from first.pointsdb import PointsDb
 import datetime
+import functools
+import base64
 
 # TODO(strager): Fancier logging.
 logging.basicConfig(level=logging.INFO)
 
 twitch_config = first.config.cfg["twitch"]
+website_config = first.config.cfg["website"]
 
 logger = logging.getLogger(__name__)
 
@@ -110,10 +115,12 @@ def create_app_from_dependencies(
         )
 
     @app.get("/admin")
+    @requires_admin_auth
     def admin_view():
         return flask.render_template('admin/index.html')
 
     @app.get("/admin/eventsub")
+    @requires_admin_auth
     def admin_eventsub():
         return flask.render_template('admin/eventsub.html', eventsub_connections=eventsub_websocket_manager.get_all_threads_for_testing())
 
@@ -196,6 +203,31 @@ def create_app_from_dependencies(
 
     set_up()
     return app
+
+def requires_admin_auth(endpoint_func):
+    def is_authenticated(authorization_header: str) -> bool:
+        if authorization_header is None:
+            return False
+        if not authorization_header.startswith("Basic "):
+            return False
+        credentials = authorization_header[len("Basic "):]
+        try:
+            user_pass = base64.b64decode(credentials.encode()).decode()
+        except (binascii.Error, UnicodeDecodeError):
+            return False
+        if ":" not in user_pass:
+            return False
+        [_username, password] = user_pass.split(":", 2)
+        return secrets.compare_digest(password, website_config["admin_password"])
+    @functools.wraps(endpoint_func)
+    def wrapper(*args, **kwargs):
+        if not is_authenticated(flask.request.headers.get("Authorization", "")):
+            return flask.Response(response="login required", status=401, headers={
+                "WWW-Authenticate": 'Basic realm="First! admin"',
+            })
+        logging.info("admin-authenticated request from IP address %s", flask.request.remote_addr)
+        return endpoint_func(*args, **kwargs)
+    return wrapper
 
 if __name__ == "__main__":
     create_app()
