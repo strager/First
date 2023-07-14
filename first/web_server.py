@@ -15,6 +15,7 @@ from first.pointsdb import PointsDb
 import datetime
 import functools
 import base64
+from first.accountdb import FirstAccountDb
 
 # TODO(strager): Fancier logging.
 logging.basicConfig(level=logging.INFO)
@@ -69,6 +70,7 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
             pass
 
 def create_app_for_testing(
+    account_db: FirstAccountDb = FirstAccountDb(":memory:"),
     authdb: TwitchAuthDb = TwitchAuthDb(":memory:"),
     points_db: PointsDb = PointsDb(":memory:"),
     eventsub_websocket_manager: typing.Optional[TwitchEventSubWebSocketManager] = None,
@@ -77,7 +79,7 @@ def create_app_for_testing(
 ) -> flask.Flask:
     if eventsub_websocket_manager is None:
         eventsub_websocket_manager = TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread, eventsub_delegate)
-    return create_app_from_dependencies(authdb=authdb, points_db=points_db, eventsub_websocket_manager=eventsub_websocket_manager)
+    return create_app_from_dependencies(account_db=account_db, authdb=authdb, points_db=points_db, eventsub_websocket_manager=eventsub_websocket_manager)
 
 def create_app() -> flask.Flask:
     """Create the Flask app for production. Named 'create_app' because that's
@@ -87,17 +89,20 @@ def create_app() -> flask.Flask:
     eventsub_delegate = PointsDbTwitchEventSubDelegate(points_db=points_db)
     eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
     return create_app_from_dependencies(
+        account_db=FirstAccountDb(),
         authdb=TwitchAuthDb(),
         points_db=points_db,
         eventsub_websocket_manager=eventsub_websocket_manager
     )
 
 def create_app_from_dependencies(
+    account_db: FirstAccountDb,
     authdb: TwitchAuthDb,
     points_db: PointsDb,
     eventsub_websocket_manager: TwitchEventSubWebSocketManager,
 ) -> flask.Flask:
     app = flask.Flask(__name__)
+    app.secret_key = website_config["session_secret_key"]
 
     @app.route("/")
     def hello_world():
@@ -158,6 +163,9 @@ def create_app_from_dependencies(
             refresh_token=refresh_token,
         )
 
+        account_id = account_db.create_or_get_account(twitch_user_id=user_id)
+        flask.session['account_id'] = account_id
+
         start_eventsub_for_user(user_id)
 
         # TODO(strager): Redirect to the user's dashboard.
@@ -195,6 +203,12 @@ def create_app_from_dependencies(
             },
         )
         ws_connection.start_thread()
+
+    @app.route("/api/whoami")
+    def api_whoami():
+        return {
+            "account_id": flask.session.get('account_id', None),
+        }
 
     def get_twitch_oauth_redirect_uri() -> str:
         return flask.url_for(oauth_twitch.__name__, _external=True)

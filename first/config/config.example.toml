@@ -1,6 +1,10 @@
 [website]
 # Password the user should use for /admin endpoints on the website.
 admin_password = "ADMINISTRATOR_PASSWORD"
+# Arbitrary token used to sign session keys. Must be treated like a secret
+# password. Generate a value with the following command:
+# $ python -c 'import secrets; print(secrets.token_hex())'
+session_secret_key = ""
 
 [twitch]
 client_id = "CLIENT_ID"

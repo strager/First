@@ -1,16 +1,18 @@
+import json
 import pytest
 import responses
 import first.web_server
 import urllib.parse
 import first.config
+from first.accountdb import FirstAccountDb
 from first.authdb import TwitchAuthDb, UserNotFoundError
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
 
 twitch_config = first.config.cfg["twitch"]
 
 @pytest.fixture
-def web_app(authdb, websocket_manager):
-    app = first.web_server.create_app_for_testing(authdb=authdb, eventsub_websocket_manager=websocket_manager)
+def web_app(account_db, authdb, websocket_manager):
+    app = first.web_server.create_app_for_testing(account_db=account_db, authdb=authdb, eventsub_websocket_manager=websocket_manager)
     app.debug = True
     app = app.test_client()
     return app
@@ -19,6 +21,10 @@ def web_app(authdb, websocket_manager):
 def authdb():
     authdb = TwitchAuthDb(":memory:")
     return authdb
+
+@pytest.fixture
+def account_db():
+    return FirstAccountDb(":memory:")
 
 @pytest.fixture
 def websocket_manager():
@@ -121,6 +127,45 @@ def test_oauth_twitch_success_starts_eventsub_connection(web_app, authdb, websoc
     websocket_threads = websocket_manager.get_all_threads_for_testing()
     assert len(websocket_threads) == 1, "should have started one thread after authenticating"
     assert websocket_threads[0].running
+
+@responses.activate
+def test_oauth_twitch_success_logs_in_with_first_account(web_app, authdb, account_db):
+    responses.post(
+        "https://id.twitch.tv/oauth2/token",
+        json={
+            "access_token": "my_access_token",
+            "refresh_token": "my_refresh_token",
+            # TODO(strager): Do we need these?
+            "expires_in": 1234,
+            "scope": [],
+            "token_type": "bearer",
+        },
+    )
+    responses.get(
+        "https://api.twitch.tv/helix/users",
+        json={
+            "data": [
+                {
+                    "id": "12345",
+                    "login": "twitchdev",
+                    "display_name": "TwitchDev",
+                }
+            ]
+        },
+    )
+
+    web_app.get("/oauth/twitch?code=myauthcode&scope=channel%3Aread%3Aredemptions+channel%3Amanage%3Aredemptions")
+
+    # Ensure the account was created. get_account_id_by_twitch_user_id shouldn't
+    # raise FirstAccountNotFoundError.
+    account_id = account_db.get_account_id_by_twitch_user_id(
+        twitch_user_id="12345",
+    )
+    assert account_id is not None
+    # Ensure the user is now logged into the account via a cookie.
+    whoami_response = web_app.get("/api/whoami")
+    whoami_data = json.loads(whoami_response.text)
+    assert whoami_data.get('account_id') == account_id
 
 @responses.activate
 def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsub_connection(web_app, authdb, websocket_manager):
