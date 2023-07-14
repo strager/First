@@ -3,7 +3,7 @@ import responses
 import threading
 import time
 import pytest
-from first.authdb import AuthDb, AuthDbUserTokenProvider
+from first.authdb import TwitchAuthDb, TwitchAuthDbUserTokenProvider
 from first.errors import UserNotFoundError
 import urllib.parse
 import first.config
@@ -14,7 +14,7 @@ TIMESTAMP_RESOLUTION = 1
 
 
 def test_add_new_tokens():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -24,7 +24,7 @@ def test_add_new_tokens():
     assert "funnyrefreshtokenhere" == authdb.get_refresh_token(user_id="5")
 
 def test_update_tokens():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -36,7 +36,7 @@ def test_update_tokens():
 
 @pytest.mark.slow
 def test_created_at_time_slow():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     before_add_user_time = datetime.now(timezone.utc)
     time.sleep(TIMESTAMP_RESOLUTION)
     authdb.update_or_create_user(
@@ -55,7 +55,7 @@ def test_created_at_time_slow():
 
 @pytest.mark.slow
 def test_updated_at_on_user_add_slow():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     before_add_user_time = datetime.now(timezone.utc)
     time.sleep(TIMESTAMP_RESOLUTION)
     authdb.update_or_create_user(
@@ -74,7 +74,7 @@ def test_updated_at_on_user_add_slow():
 
 @pytest.mark.slow
 def test_updated_at_slow():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -90,17 +90,17 @@ def test_updated_at_slow():
     assert updated_user_time > updated_before_update_user_time
 
 def test_get_access_token_user_doesnt_exist():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     with pytest.raises(UserNotFoundError):
         authdb.get_access_token(user_id=42)
 
 def test_get_refresh_token_user_doesnt_exist():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     with pytest.raises(UserNotFoundError):
         authdb.get_refresh_token(user_id=42)
 
 def test_add_already_exisisting_user():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="funnytokenhere",
@@ -115,7 +115,7 @@ def test_add_already_exisisting_user():
     assert authdb.get_refresh_token(user_id="5") == "thisshouldbechangedalso"
 
 def test_get_all_user_ids():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="100",
             access_token="a100",
@@ -129,7 +129,7 @@ def test_get_all_user_ids():
     assert sorted(authdb.get_all_user_ids_slow()) == ["100", "333"]
 
 def test_read_and_write_from_multiple_threads():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
 
     loaded_access_token = None
     loaded_refresh_token = None
@@ -169,13 +169,13 @@ def test_read_and_write_from_multiple_threads():
     assert loaded_refresh_token in ("(not found)", "thread_1_refresh_token", "thread_2_refresh_token")
 
 def test_token_provider_gives_token_from_database():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="my_access_token",
             refresh_token="my_refresh_token"
     )
-    token_provider = AuthDbUserTokenProvider(authdb, user_id="5")
+    token_provider = TwitchAuthDbUserTokenProvider(authdb, user_id="5")
     assert token_provider.get_access_token() == "my_access_token"
 
 @responses.activate
@@ -199,13 +199,13 @@ def test_token_provider_refresh_gets_new_access_and_access_tokens_from_twitch_ap
         },
     )
 
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     authdb.update_or_create_user(
             user_id="5",
             access_token="original_access_token",
             refresh_token="original_refresh_token"
     )
-    token_provider = AuthDbUserTokenProvider(authdb, user_id="5")
+    token_provider = TwitchAuthDbUserTokenProvider(authdb, user_id="5")
 
     assert token_provider.refresh_access_token() == "new_access_token"
     assert token_provider.get_access_token() == "new_access_token"

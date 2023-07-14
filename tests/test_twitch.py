@@ -3,7 +3,7 @@ import responses
 from first.twitch import Twitch, AuthenticatedTwitch
 import urllib.parse
 import first.config
-from first.authdb import AuthDb, Token
+from first.authdb import TwitchAuthDb, Token
 
 twitch_config = first.config.cfg["twitch"]
 

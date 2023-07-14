@@ -1,4 +1,4 @@
-"""AuthDb"""
+"""TwitchAuthDb"""
 import sqlite3
 import threading
 from datetime import datetime
@@ -19,11 +19,11 @@ class TokenProvider(typing.Protocol):
     @property
     def user_id(self) -> UserId: ...
 
-class AuthDbUserTokenProvider(TokenProvider):
-    _authdb: "AuthDb"
+class TwitchAuthDbUserTokenProvider(TokenProvider):
+    _authdb: "TwitchAuthDb"
     _user_id: UserId
 
-    def __init__(self, authdb: "AuthDb", user_id: UserId) -> None:
+    def __init__(self, authdb: "TwitchAuthDb", user_id: UserId) -> None:
         self._authdb = authdb
         self._user_id = user_id
 
@@ -43,11 +43,11 @@ class AuthDbUserTokenProvider(TokenProvider):
     def user_id(self) -> UserId:
         return self._user_id
 
-class AuthDb:
+class TwitchAuthDb:
     db: sqlite3.Connection
 
-    # NOTE[AuthDb-lock]: __lock serializes access to self.db, but does not
-    # synchronize other instances of AuthDb with the same database file.
+    # NOTE[TwitchAuthDb-lock]: __lock serializes access to self.db, but does not
+    # synchronize other instances of TwitchAuthDb with the same database file.
     #
     # sqlite3 can serialize calls automatically (sqlite3.threadsafety == 3), but
     # this is a build-time setting for CPython this not guaranteed to be
@@ -57,7 +57,7 @@ class AuthDb:
     def __init__(self, db=authdb_config["db"]):
         self.db = sqlite3.connect(
             db,
-            # See NOTE[AuthDb-lock].
+            # See NOTE[TwitchAuthDb-lock].
             check_same_thread=False,
         )
         cur = self.db.cursor()

@@ -2,14 +2,14 @@ import base64
 import pytest
 import first.config
 import first.web_server
-from first.authdb import AuthDb, UserNotFoundError
+from first.authdb import TwitchAuthDb, UserNotFoundError
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
 
 website_config = first.config.cfg["website"]
 
 @pytest.fixture
 def authdb():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     return authdb
 
 @pytest.fixture

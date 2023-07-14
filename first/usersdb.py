@@ -12,13 +12,13 @@ users_config = cfg["usersdb"]
 class UsersDb:
     db: sqlite3.Connection
 
-    # See NOTE[AuthDb-lock].
+    # See NOTE[TwitchAuthDb-lock].
     __lock: threading.Lock
 
     def __init__(self, db=users_config["db"]):
         self.db = sqlite3.connect(
             db,
-            # See NOTE[AuthDb-lock].
+            # See NOTE[TwitchAuthDb-lock].
             check_same_thread=False,
         )
         cur = self.db.cursor()

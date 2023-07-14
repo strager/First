@@ -3,7 +3,7 @@ import responses
 import first.web_server
 import urllib.parse
 import first.config
-from first.authdb import AuthDb, UserNotFoundError
+from first.authdb import TwitchAuthDb, UserNotFoundError
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
 
 twitch_config = first.config.cfg["twitch"]
@@ -17,7 +17,7 @@ def web_app(authdb, websocket_manager):
 
 @pytest.fixture
 def authdb():
-    authdb = AuthDb(":memory:")
+    authdb = TwitchAuthDb(":memory:")
     return authdb
 
 @pytest.fixture

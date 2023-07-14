@@ -4,7 +4,7 @@ import binascii
 from uuid import uuid4
 from first.twitch import Twitch, AuthenticatedTwitch
 from urllib.parse import quote_plus
-from first.authdb import AuthDb, AuthDbUserTokenProvider, UserId
+from first.authdb import TwitchAuthDb, TwitchAuthDbUserTokenProvider, UserId
 import first.config
 from werkzeug.exceptions import HTTPException
 import logging
@@ -69,7 +69,7 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
             pass
 
 def create_app_for_testing(
-    authdb: AuthDb = AuthDb(":memory:"),
+    authdb: TwitchAuthDb = TwitchAuthDb(":memory:"),
     points_db: PointsDb = PointsDb(":memory:"),
     eventsub_websocket_manager: typing.Optional[TwitchEventSubWebSocketManager] = None,
     # Used only if eventsub_websocket_manager is None.
@@ -87,13 +87,13 @@ def create_app() -> flask.Flask:
     eventsub_delegate = PointsDbTwitchEventSubDelegate(points_db=points_db)
     eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
     return create_app_from_dependencies(
-        authdb=AuthDb(),
+        authdb=TwitchAuthDb(),
         points_db=points_db,
         eventsub_websocket_manager=eventsub_websocket_manager
     )
 
 def create_app_from_dependencies(
-    authdb: AuthDb,
+    authdb: TwitchAuthDb,
     points_db: PointsDb,
     eventsub_websocket_manager: TwitchEventSubWebSocketManager,
 ) -> flask.Flask:
@@ -184,7 +184,7 @@ def create_app_from_dependencies(
         return error.description, 500
 
     def start_eventsub_for_user(user_id: UserId) -> None:
-        twitch = AuthenticatedTwitch(AuthDbUserTokenProvider(authdb, user_id))
+        twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, user_id))
         eventsub_websocket_manager.stop_connections_for_user(user_id)
         ws_connection = eventsub_websocket_manager.create_new_connection(twitch)
         ws_connection.add_subscription(
