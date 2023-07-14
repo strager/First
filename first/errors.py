@@ -4,8 +4,5 @@ class UserNotFoundError(Exception):
 class FirstAccountNotFoundError(Exception):
     pass
 
-class UniqueUserAlreadyExists(Exception):
-    pass
-
 class RowNotFoundError(Exception):
     pass
