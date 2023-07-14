@@ -30,6 +30,24 @@ class FirstAccountDb(DbBase):
         )
         self._create_updated_at_trigger(table_name="account")
 
+    def get_account_id_by_twitch_user_id(self, twitch_user_id: TwitchUserId) -> FirstAccountId:
+        """Throws FirstAccountNotFoundError if no matching account was found.
+        """
+        with self._lock:
+            cur = self.db.cursor()
+            data = {
+                "twitch_user_id": twitch_user_id,
+            }
+            result = cur.execute(
+                (
+                    "SELECT account_id FROM account WHERE twitch_user_id = :twitch_user_id"
+                ), data)
+            result_fetched = result.fetchone()
+        if result_fetched is None:
+            raise FirstAccountNotFoundError
+        account_id, = result_fetched
+        return account_id
+
     def create_or_get_account(self, twitch_user_id: TwitchUserId) -> FirstAccountId:
         with self._lock:
             cur = self.db.cursor()
@@ -55,4 +73,3 @@ class FirstAccountDb(DbBase):
             raise FirstAccountNotFoundError
         account_id, = result_fetched
         return account_id
-
