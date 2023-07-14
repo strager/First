@@ -10,8 +10,6 @@ from first.twitch import TwitchUserId
 users_config = cfg["usersdb"]
 
 class TwitchUsersDb(DbBase):
-    db: sqlite3.Connection
-
     def __init__(self, db=users_config["db"]):
         super().__init__()
         self._create_sqlite3_database(db)
