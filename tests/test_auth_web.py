@@ -183,6 +183,49 @@ def test_admin_impersonate_changes_account_id(web_app, account_db, set_admin_pas
     whoami_data = json.loads(whoami_response.text)
     assert whoami_data.get('account_id') == account_id
 
+def test_log_out_should_disassociate_account_with_session(web_app, account_db, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="1234")
+    assert account_id is not None
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+
+    _log_out_response = web_app.post("/logout")
+
+    whoami_response = web_app.get("/api/whoami")
+    whoami_data = json.loads(whoami_response.text)
+    assert whoami_data.get('account_id') == None
+
+def test_log_out_without_uri_should_redirect_to_home_page(web_app, account_db, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="1234")
+    assert account_id is not None
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+
+    log_out_response = web_app.post("/logout")
+    assert log_out_response.status_code == 303, "should redirect with a GET request"
+    url = urllib.parse.urlparse(log_out_response.headers["location"])
+    assert url.path == "/", "should direct to the home page"
+
+def test_log_out_with_uri_should_redirect_to_specified_uri(web_app, account_db, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="1234")
+    assert account_id is not None
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+
+    log_out_response = web_app.post("/logout?uri=/banana/icecream")
+    assert log_out_response.status_code == 303, "should redirect with a GET request"
+    url = urllib.parse.urlparse(log_out_response.headers["location"])
+    assert url.path == "/banana/icecream", "should direct to the requested uri"
+
 @responses.activate
 def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsub_connection(web_app, authdb, websocket_manager):
     responses.post(

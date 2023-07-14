@@ -105,7 +105,7 @@ def create_app_from_dependencies(
     app.secret_key = website_config["session_secret_key"]
 
     @app.route("/")
-    def hello_world():
+    def home():
         return flask.render_template('index.html')
 
     @app.get("/login")
@@ -199,6 +199,15 @@ def create_app_from_dependencies(
             f"&state={quote_plus(state)}"
         )
         return flask.redirect(url, code=303)
+
+    @app.post("/logout")
+    def log_out():
+        flask.session['account_id'] = None
+
+        uri = flask.request.args.get('uri', None)
+        if uri is None:
+            uri = flask.url_for(home.__name__)
+        return flask.redirect(uri, code=303)
 
     @app.errorhandler(UnexpectedTwitchOAuthError)
     def unexpected_twitch_oauth_error(error):

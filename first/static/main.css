@@ -11,6 +11,16 @@ section {
 
 header {
     border-bottom: 1px solid #666;
+    display: grid;
+    grid-template-areas:
+        "title account-info"
+        "misc misc";
+}
+header > h1 {
+    grid-area: title;
+}
+header > .common-account-info {
+    grid-area: account-info;
 }
 
 table {

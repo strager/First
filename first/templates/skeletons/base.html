@@ -8,6 +8,15 @@
     <body>
         <header>
             <h1>First!</h1>
+            {% block login_info %}
+                <div class="common-account-info">
+                    {% if session.account_id is not none %}
+                        <form method="post" action="{{ url_for('log_out', uri=request.path) }}" class="log-out">
+                            <button>Log out</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endblock %}
             {% block header %}{% endblock %}
         </header>
         {% block body %}{% endblock %}
