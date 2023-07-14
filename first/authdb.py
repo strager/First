@@ -42,6 +42,21 @@ class TwitchAuthDbUserTokenProvider(TokenProvider):
     def user_id(self) -> TwitchUserId:
         return self._user_id
 
+class TwitchAppTokenProvider(TokenProvider):
+
+    def __init__(self) -> None: ...
+
+    def get_access_token(self) -> Token:
+        twitch = Twitch()
+        return twitch.get_authenticated_app_access_token()
+
+    def refresh_access_token(self) -> Token:
+        return get_access_token()
+
+    @property
+    def user_id(self) -> TwitchUserId:
+        return None
+
 class TwitchAuthDb(DbBase):
     def __init__(self, db=authdb_config["db"]):
         super().__init__()

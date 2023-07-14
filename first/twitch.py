@@ -44,6 +44,15 @@ class Twitch:
             new_refresh_token=refresh_result["refresh_token"],
         )
 
+    def get_authenticated_app_access_token(self) -> "Token":
+        data = {
+            "grant_type": "client_credentials",
+            "client_id": twitch_config["client_id"],
+            "client_secret": twitch_config["client_secret"],
+        }
+        response = requests.post("https://id.twitch.tv/oauth2/token", data=data).json()
+        return response["access_token"]
+
 class AuthenticatedTwitch:
     """Authenticated Twitch API access.
 
