@@ -8,7 +8,7 @@ from first.errors import RowNotFoundError
 
 RewardId = str
 StreamerId = str
-UserId = str
+TwitchUserId = str
 Date = datetime
 
 points_config = cfg["pointsdb"]
@@ -43,7 +43,7 @@ class PointsDb:
         self.__lock = threading.Lock()
 
     def insert_new_redemption(self, broadcaster_id: StreamerId,
-                              redemption_id: RewardId, user_id: UserId,
+                              redemption_id: RewardId, user_id: TwitchUserId,
                               redeemed_at: Date, points: int, level: int):
         with self.__lock:
             cur = self.db.cursor()
@@ -64,7 +64,7 @@ class PointsDb:
 
             self.db.commit()
 
-    def get_monthly_channel_points(self, broadcaster_id: StreamerId) -> typing.List[typing.Tuple[UserId, int]]:
+    def get_monthly_channel_points(self, broadcaster_id: StreamerId) -> typing.List[typing.Tuple[TwitchUserId, int]]:
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -85,7 +85,7 @@ class PointsDb:
             raise RowNotFoundError
         return result_fetched
 
-    def get_lifetime_channel_points(self, broadcaster_id: StreamerId) -> typing.List[typing.Tuple[UserId, int]]:
+    def get_lifetime_channel_points(self, broadcaster_id: StreamerId) -> typing.List[typing.Tuple[TwitchUserId, int]]:
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -104,7 +104,7 @@ class PointsDb:
             raise RowNotFoundError
         return result_fetched
 
-    def get_monthly_user_points(self, user_id: UserId) -> int:
+    def get_monthly_user_points(self, user_id: TwitchUserId) -> int:
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -126,7 +126,7 @@ class PointsDb:
         points, = result_fetched
         return points
 
-    def get_lifetime_user_points(self, user_id: UserId) -> int:
+    def get_lifetime_user_points(self, user_id: TwitchUserId) -> int:
         with self.__lock:
             cur = self.db.cursor()
             data = {

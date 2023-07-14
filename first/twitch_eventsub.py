@@ -1,5 +1,5 @@
 from first.twitch import AuthenticatedTwitch
-from first.authdb import UserId
+from first.authdb import TwitchUserId
 import json
 import logging
 import threading
@@ -68,7 +68,7 @@ class TwitchEventSubWebSocketManager:
             self._threads.append(thread)
         return thread
 
-    def stop_connections_for_user(self, user_id: UserId) -> None:
+    def stop_connections_for_user(self, user_id: TwitchUserId) -> None:
         """Find existing connections authenticated with the given user and stop them.
         """
         with self._lock:

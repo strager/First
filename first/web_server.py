@@ -4,7 +4,7 @@ import binascii
 from uuid import uuid4
 from first.twitch import Twitch, AuthenticatedTwitch
 from urllib.parse import quote_plus
-from first.authdb import TwitchAuthDb, TwitchAuthDbUserTokenProvider, UserId
+from first.authdb import TwitchAuthDb, TwitchAuthDbUserTokenProvider, TwitchUserId
 import first.config
 from werkzeug.exceptions import HTTPException
 import logging
@@ -108,7 +108,7 @@ def create_app_from_dependencies(
         return flask.render_template('login.html')
 
     @app.get("/stream/<broadcaster_id>")
-    def stream_leaderboard(broadcaster_id: UserId):
+    def stream_leaderboard(broadcaster_id: TwitchUserId):
         return flask.render_template(
             'stream-leaderboard.html',
             stream_name="TODO", # TODO(strager)
@@ -183,7 +183,7 @@ def create_app_from_dependencies(
         logger.error(error)
         return error.description, 500
 
-    def start_eventsub_for_user(user_id: UserId) -> None:
+    def start_eventsub_for_user(user_id: TwitchUserId) -> None:
         twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, user_id))
         eventsub_websocket_manager.stop_connections_for_user(user_id)
         ws_connection = eventsub_websocket_manager.create_new_connection(twitch)

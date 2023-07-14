@@ -5,7 +5,7 @@ import typing
 from first.config import cfg
 from first.errors import UserNotFoundError, UniqueUserAlreadyExists
 
-UserId = str
+TwitchUserId = str
 
 users_config = cfg["usersdb"]
 
@@ -35,7 +35,7 @@ class UsersDb:
 
         self.__lock = threading.Lock()
 
-    def insert_new_user(self, user_id: UserId, user_login: str, user_name: str):
+    def insert_new_user(self, user_id: TwitchUserId, user_login: str, user_name: str):
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -52,7 +52,7 @@ class UsersDb:
             except sqlite3.IntegrityError as error:
                 raise UniqueUserAlreadyExists
 
-    def get_user_login_from_id(self, user_id: UserId) -> str:
+    def get_user_login_from_id(self, user_id: TwitchUserId) -> str:
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -65,7 +65,7 @@ class UsersDb:
         login, = result_fetched
         return login
 
-    def get_user_name_from_id(self, user_id: UserId) -> str:
+    def get_user_name_from_id(self, user_id: TwitchUserId) -> str:
         with self.__lock:
             cur = self.db.cursor()
             data = {

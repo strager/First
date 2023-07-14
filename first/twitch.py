@@ -5,7 +5,7 @@ import first.config
 import typing
 
 if typing.TYPE_CHECKING:
-    from first.authdb import Token, UserId, TokenProvider
+    from first.authdb import Token, TwitchUserId, TokenProvider
 
 twitch_config = first.config.cfg["twitch"]
 
@@ -15,7 +15,7 @@ class Twitch:
     This object is thread-safe.
     """
 
-    def get_authenticated_user_id(self, access_token: "Token") -> "UserId":
+    def get_authenticated_user_id(self, access_token: "Token") -> "TwitchUserId":
         # TODO(strager): Error handling.
         response = requests.get("https://api.twitch.tv/helix/users", headers={
             "Authorization": f"Bearer {access_token}",
@@ -55,10 +55,10 @@ class AuthenticatedTwitch:
     def __init__(self, auth_token_provider: "TokenProvider") -> None:
         self._auth_token_provider = auth_token_provider
 
-    def get_self_user_id_fast(self) -> "UserId":
+    def get_self_user_id_fast(self) -> "TwitchUserId":
         return self._auth_token_provider.user_id
 
-    def get_user_display_name_by_user_id(self, user_id: "UserId") -> str:
+    def get_user_display_name_by_user_id(self, user_id: "TwitchUserId") -> str:
         data = self._get_json(f"https://api.twitch.tv/helix/users?id={quote_plus(user_id)}")
         # TODO(strager): Robust error handling.
         return data["data"][0]["display_name"]

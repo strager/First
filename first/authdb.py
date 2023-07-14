@@ -7,7 +7,7 @@ from first.twitch import Twitch
 from first.config import cfg
 from first.errors import UserNotFoundError
 
-UserId = str
+TwitchUserId = str
 Token = str
 Time = datetime
 
@@ -17,13 +17,13 @@ class TokenProvider(typing.Protocol):
     def get_access_token(self) -> Token: ...
     def refresh_access_token(self) -> Token: ...
     @property
-    def user_id(self) -> UserId: ...
+    def user_id(self) -> TwitchUserId: ...
 
 class TwitchAuthDbUserTokenProvider(TokenProvider):
     _authdb: "TwitchAuthDb"
-    _user_id: UserId
+    _user_id: TwitchUserId
 
-    def __init__(self, authdb: "TwitchAuthDb", user_id: UserId) -> None:
+    def __init__(self, authdb: "TwitchAuthDb", user_id: TwitchUserId) -> None:
         self._authdb = authdb
         self._user_id = user_id
 
@@ -40,7 +40,7 @@ class TwitchAuthDbUserTokenProvider(TokenProvider):
         return refresh_result.new_access_token
 
     @property
-    def user_id(self) -> UserId:
+    def user_id(self) -> TwitchUserId:
         return self._user_id
 
 class TwitchAuthDb:
@@ -87,7 +87,7 @@ class TwitchAuthDb:
         self.__lock = threading.Lock()
 
 
-    def update_or_create_user(self, user_id: UserId, access_token: Token, refresh_token: Token):
+    def update_or_create_user(self, user_id: TwitchUserId, access_token: Token, refresh_token: Token):
         """
         If user does not exist it creates a new one.
         If it exists, it just updates the tokens.
@@ -108,7 +108,7 @@ class TwitchAuthDb:
 
             self.db.commit()
 
-    def get_access_token(self, user_id: UserId) -> Token:
+    def get_access_token(self, user_id: TwitchUserId) -> Token:
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -121,7 +121,7 @@ class TwitchAuthDb:
         access_token, = result_fetched
         return access_token
 
-    def get_refresh_token(self, user_id: UserId) -> Token:
+    def get_refresh_token(self, user_id: TwitchUserId) -> Token:
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -134,7 +134,7 @@ class TwitchAuthDb:
         refresh_token, = result_fetched
         return refresh_token
 
-    def get_all_user_ids_slow(self) -> typing.List[UserId]:
+    def get_all_user_ids_slow(self) -> typing.List[TwitchUserId]:
         user_ids = []
         with self.__lock:
             cur = self.db.cursor()
@@ -147,7 +147,7 @@ class TwitchAuthDb:
                     user_ids.append(user_id)
         return user_ids
 
-    def get_created_at_time(self, user_id: UserId) -> Time:
+    def get_created_at_time(self, user_id: TwitchUserId) -> Time:
         with self.__lock:
             cur = self.db.cursor()
             data = {
@@ -158,7 +158,7 @@ class TwitchAuthDb:
         created_at = datetime.fromisoformat(created_at + "Z")
         return created_at
 
-    def get_updated_at_time(self, user_id: UserId) -> Time:
+    def get_updated_at_time(self, user_id: TwitchUserId) -> Time:
         with self.__lock:
             cur = self.db.cursor()
             data = {
