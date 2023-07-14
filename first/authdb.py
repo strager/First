@@ -5,11 +5,10 @@ from datetime import datetime
 import typing
 from first.twitch import Twitch, TwitchUserId
 from first.config import cfg
-from first.db import DbBase
+from first.db import DbBase, Timestamp
 from first.errors import UserNotFoundError
 
 Token = str
-Time = datetime
 
 authdb_config = cfg["authdb"]
 
@@ -55,21 +54,11 @@ class TwitchAuthDb(DbBase):
                     "user_id UNIQUE, "
                     "access_token, "
                     "refresh_token, "
-                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
-                    "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+                    f"{self._created_at_and_updated_at_column_definitions_sql()}"
                 ")"
             )
         )
-        cur.execute(
-            (
-                "CREATE TRIGGER IF NOT EXISTS [UPDATE_DT]"
-                "  AFTER UPDATE ON twitch_tokens FOR EACH ROW"
-                "  WHEN OLD.updated_at = NEW.updated_at OR OLD.updated_at IS NULL"
-                " BEGIN"
-                "   UPDATE twitch_tokens SET updated_at=CURRENT_TIMESTAMP WHERE user_id=NEW.user_id;"
-                " END;"
-            )
-        )
+        self._create_updated_at_trigger(table_name="twitch_tokens")
 
 
     def update_or_create_user(self, user_id: TwitchUserId, access_token: Token, refresh_token: Token):
@@ -132,24 +121,22 @@ class TwitchAuthDb(DbBase):
                     user_ids.append(user_id)
         return user_ids
 
-    def get_created_at_time(self, user_id: TwitchUserId) -> Time:
-        with self._lock:
-            cur = self.db.cursor()
-            data = {
+    def get_created_at_time(self, user_id: TwitchUserId) -> Timestamp:
+        created_at, _updated_at = self._get_created_at_and_updated_at(
+            table_name="twitch_tokens",
+            where_clause="WHERE user_id = :user_id",
+            parameters={
                 "user_id": user_id,
-            }
-            result = cur.execute("SELECT created_at FROM twitch_tokens WHERE user_id = :user_id", data)
-            created_at, = result.fetchone()
-        created_at = datetime.fromisoformat(created_at + "Z")
+            },
+        )
         return created_at
 
-    def get_updated_at_time(self, user_id: TwitchUserId) -> Time:
-        with self._lock:
-            cur = self.db.cursor()
-            data = {
+    def get_updated_at_time(self, user_id: TwitchUserId) -> Timestamp:
+        _created_at, updated_at = self._get_created_at_and_updated_at(
+            table_name="twitch_tokens",
+            where_clause="WHERE user_id = :user_id",
+            parameters={
                 "user_id": user_id,
-            }
-            result = cur.execute("SELECT updated_at FROM twitch_tokens WHERE user_id = :user_id", data)
-            updated_at, = result.fetchone()
-        updated_at = datetime.fromisoformat(updated_at + "Z")
+            },
+        )
         return updated_at
