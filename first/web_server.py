@@ -131,6 +131,11 @@ def create_app_from_dependencies(
     def admin_eventsub():
         return flask.render_template('admin/eventsub.html', eventsub_connections=eventsub_websocket_manager.get_all_threads_for_testing())
 
+    @app.get("/admin/accounts")
+    @requires_admin_auth
+    def admin_accounts():
+        return flask.render_template('admin/accounts.html', accounts=account_db.get_all_accounts_for_testing())
+
     @app.post("/admin/impersonate")
     @requires_admin_auth
     def admin_impersonate():

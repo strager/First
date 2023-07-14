@@ -1,9 +1,10 @@
 from first.config import cfg
-from first.db import DbBase
+from first.db import DbBase, Timestamp
 from first.errors import FirstAccountNotFoundError
 from first.twitch import TwitchUserId
 import sqlite3
 import threading
+import typing
 
 accounts_config = cfg["accountsdb"]
 
@@ -74,3 +75,23 @@ class FirstAccountDb(DbBase):
             raise FirstAccountNotFoundError
         account_id, = result_fetched
         return account_id
+
+    class AccountForTesting(typing.NamedTuple):
+        account_id: FirstAccountId
+        twitch_user_id: TwitchUserId
+        created_at: Timestamp
+        updated_at: Timestamp
+
+    def get_all_accounts_for_testing(self) -> typing.List[AccountForTesting]:
+        accounts = []
+        with self._lock:
+            cur = self.db.cursor()
+            result = cur.execute("SELECT account_id, twitch_user_id, created_at, updated_at FROM account")
+            while True:
+                rows = result.fetchmany()
+                if not rows:
+                    break
+                for (account_id, twitch_user_id, created_at, updated_at) in rows:
+                    accounts.append(self.AccountForTesting(account_id=account_id, twitch_user_id=twitch_user_id, created_at=created_at, updated_at=updated_at))
+        return accounts
+

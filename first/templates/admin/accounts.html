@@ -1,0 +1,35 @@
+{% extends "skeletons/base.html" %}
+{% block title %}Accounts - First! admin{% endblock %}
+
+{% block header %}
+    <p>First! accounts debugger</p>
+{% endblock %}
+
+{% block body %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Twitch ID</th>
+                <th>Created</th>
+                <th>Updated</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for account in accounts %}
+                <tr>
+                    <th>{{ account.account_id }}</th>
+                    <td>{{ account.twitch_user_id }}</td>
+                    <td>{{ account.created_at }}</td>
+                    <td>{{ account.updated_at }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin_impersonate') }}">
+                            <input type="hidden" name="account_id" value="{{ account.account_id }}">
+                            <button>Impersonate</button>
+                        </form>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
