@@ -15,13 +15,17 @@ def test_create_new_account():
 
 def test_create_account_with_existing_twitch_user_id_should_reuse_account():
     account_db = FirstAccountDb(":memory:")
-    account_1_id = account_db.create_or_get_account(
+    account_id = account_db.create_or_get_account(
         twitch_user_id="1234",
     )
-    account_2_id = account_db.create_or_get_account(
+    # Create another unrelated account to try to trick FirstAccountDb.
+    account_db.create_or_get_account(
+        twitch_user_id="5678",
+    )
+    account_id_again = account_db.create_or_get_account(
         twitch_user_id="1234",
     )
-    assert account_1_id == account_2_id
+    assert account_id == account_id_again
 
 def test_getting_existing_account_by_twitch_user_id_succeeds():
     account_db = FirstAccountDb(":memory:")

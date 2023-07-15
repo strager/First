@@ -56,12 +56,19 @@ class FirstAccountDb(DbBase):
             data = {
                 "twitch_user_id": twitch_user_id,
             }
-            cur.execute(
+            # NOTE(strager): lastrowid is unreliable. Use RETURNING instead.
+            # NOTE(strager): If we ignore on duplicates ('INSERT OR IGNORE' or
+            # 'ON CONFLICT DO NOTHING'), SQLite does not return a rowid. Do a
+            # no-op UPDATE SET.
+            result = cur.execute(
                 (
-                    "INSERT OR IGNORE INTO account (twitch_user_id) VALUES (:twitch_user_id) "
+                    "INSERT INTO account (twitch_user_id) VALUES (:twitch_user_id) "
+                    "ON CONFLICT DO UPDATE SET twitch_user_id = twitch_user_id "
+                    "RETURNING account_id"
                 ), data)
+            result_fetched = result.fetchone()
             self.db.commit()
-            return cur.lastrowid
+        return result_fetched[0]
 
     def get_account_twitch_user_id(self, account_id: FirstAccountId) -> TwitchUserId:
         with self._lock:
