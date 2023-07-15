@@ -27,6 +27,7 @@ class TwitchUserNameCache(TwitchUsersDb):
             display_name = self.get_user_name_from_id(user_id)
         except UserNotFoundError:
             display_name = self.twitch.get_user_display_name_by_user_id(user_id)
+            self.set_user_info(user_id=user_id, display_name=display_name)
         return display_name
 
     # Not needed right now:
@@ -38,8 +39,8 @@ class TwitchUserNameCache(TwitchUsersDb):
     # https://dev.twitch.tv/docs/api/reference/#get-users
     def get_user_id_from_user_name(self, user_name: str) -> TwitchUserId: ...
 
-    def set_user_info(self, user_id: TwitchUserId, user_login: typing.Optional[str], display_name: typing.Optional[str]):
+    def set_user_info(self, user_id: TwitchUserId, user_login: typing.Optional[str] = None, display_name: typing.Optional[str] = None):
         """Update the cache if we happen to receive data from some Twitch API
         (such as a redemption notification).
         """
-        self.db.insert_or_update_user(user_id=user_id, user_login=user_login, user_name=display_name)
+        self.insert_or_update_user(user_id=user_id, user_login=user_login, user_name=display_name)
