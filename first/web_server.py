@@ -104,6 +104,12 @@ def create_app_from_dependencies(
     app = flask.Flask(__name__)
     app.secret_key = website_config["session_secret_key"]
 
+    @app.context_processor
+    def inject_template_globals():
+        return {
+            "account_db": account_db,
+        }
+
     @app.route("/")
     def home():
         return flask.render_template('index.html')
