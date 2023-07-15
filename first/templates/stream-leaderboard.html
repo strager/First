@@ -15,8 +15,7 @@
         <tbody>
             {% for (user_id, points) in points_per_user %}
             <tr>
-                <!-- TODO(strager): Show user name instead. -->
-                <th>{{ user_id }}</th>
+                <th>{{ id_to_display_name(user_id) }}</th>
                 <td>{{ points }}</td>
             </tr>
             {% endfor %}

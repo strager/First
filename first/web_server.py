@@ -11,6 +11,7 @@ import logging
 import requests
 import typing
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, TwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate, TwitchEventSubDelegate
+from first.users_cache import TwitchUserNameCache
 from first.pointsdb import PointsDb
 import datetime
 import functools
@@ -76,10 +77,11 @@ def create_app_for_testing(
     eventsub_websocket_manager: typing.Optional[TwitchEventSubWebSocketManager] = None,
     # Used only if eventsub_websocket_manager is None.
     eventsub_delegate: TwitchEventSubDelegate = stub_twitch_eventsub_delegate,
+    twitch_users_cache: TwitchUserNameCache = TwitchUserNameCache(":memory:"),
 ) -> flask.Flask:
     if eventsub_websocket_manager is None:
         eventsub_websocket_manager = TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread, eventsub_delegate)
-    return create_app_from_dependencies(account_db=account_db, authdb=authdb, points_db=points_db, eventsub_websocket_manager=eventsub_websocket_manager)
+    return create_app_from_dependencies(account_db=account_db, authdb=authdb, points_db=points_db, eventsub_websocket_manager=eventsub_websocket_manager, twitch_users_cache=twitch_users_cache)
 
 def create_app() -> flask.Flask:
     """Create the Flask app for production. Named 'create_app' because that's
@@ -92,7 +94,8 @@ def create_app() -> flask.Flask:
         account_db=FirstAccountDb(),
         authdb=TwitchAuthDb(),
         points_db=points_db,
-        eventsub_websocket_manager=eventsub_websocket_manager
+        eventsub_websocket_manager=eventsub_websocket_manager,
+        twitch_users_cache=TwitchUserNameCache(),
     )
 
 def create_app_from_dependencies(
@@ -100,6 +103,7 @@ def create_app_from_dependencies(
     authdb: TwitchAuthDb,
     points_db: PointsDb,
     eventsub_websocket_manager: TwitchEventSubWebSocketManager,
+    twitch_users_cache: TwitchUserNameCache,
 ) -> flask.Flask:
     app = flask.Flask(__name__)
     app.secret_key = website_config["session_secret_key"]
@@ -108,11 +112,12 @@ def create_app_from_dependencies(
     def inject_template_globals():
         return {
             "account_db": account_db,
+            "twitch_users_cache": twitch_users_cache,
         }
 
     @app.route("/")
     def home():
-        return flask.render_template('index.html', firsts_per_streamer=points_db.get_streamers_lifetime_leaderboard())
+        return flask.render_template('index.html', firsts_per_streamer=points_db.get_streamers_lifetime_leaderboard(), id_to_display_name=twitch_users_cache.get_display_name_from_id)
 
     @app.get("/login")
     def log_in_view():
@@ -122,25 +127,37 @@ def create_app_from_dependencies(
     def stream_leaderboard(broadcaster_id: TwitchUserId):
         return flask.render_template(
             'stream-leaderboard.html',
-            stream_name="TODO", # TODO(strager)
+            stream_name=twitch_users_cache.get_display_name_from_id(broadcaster_id),
             lifetime_points=points_db.get_lifetime_channel_points(broadcaster_id=broadcaster_id),
             monthly_points=points_db.get_monthly_channel_points(broadcaster_id=broadcaster_id),
+            id_to_display_name=twitch_users_cache.get_display_name_from_id,
         )
 
     @app.get("/admin")
     @requires_admin_auth
     def admin_view():
-        return flask.render_template('admin/index.html')
+        return flask.render_template(
+            'admin/index.html',
+            id_to_display_name=twitch_users_cache.get_display_name_from_id,
+        )
 
     @app.get("/admin/eventsub")
     @requires_admin_auth
     def admin_eventsub():
-        return flask.render_template('admin/eventsub.html', eventsub_connections=eventsub_websocket_manager.get_all_threads_for_testing())
+        return flask.render_template(
+            'admin/eventsub.html',
+            eventsub_connections=eventsub_websocket_manager.get_all_threads_for_testing(),
+            id_to_display_name=twitch_users_cache.get_display_name_from_id,
+        )
 
     @app.get("/admin/accounts")
     @requires_admin_auth
     def admin_accounts():
-        return flask.render_template('admin/accounts.html', accounts=account_db.get_all_accounts_for_testing())
+        return flask.render_template(
+            'admin/accounts.html',
+            accounts=account_db.get_all_accounts_for_testing(),
+            id_to_display_name=twitch_users_cache.get_display_name_from_id,
+        )
 
     @app.post("/admin/impersonate")
     @requires_admin_auth

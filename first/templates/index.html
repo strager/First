@@ -18,7 +18,7 @@
             <tbody>
                 {% for (streamer_id, firsts) in firsts_per_streamer %}
                     <tr>
-                        <th><a href="/stream/{{ streamer_id }}">{{ streamer_id }}</a></th>
+                        <th><a href="/stream/{{ streamer_id }}">{{ id_to_display_name(streamer_id) }}</a></th>
                         <td>{{ firsts }} firsts</td>
                     </tr>
                 {% endfor %}

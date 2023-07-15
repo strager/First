@@ -11,6 +11,7 @@
             <tr>
                 <th>ID</th>
                 <th>Twitch ID</th>
+                <th>Twitch Display Name</th>
                 <th>Created</th>
                 <th>Updated</th>
                 <th>Actions</th>
@@ -21,6 +22,7 @@
                 <tr>
                     <th>{{ account.account_id }}</th>
                     <td>{{ account.twitch_user_id }}</td>
+                    <td>{{ id_to_display_name(account.twitch_user_id) }}</td>
                     <td>{{ account.created_at }}</td>
                     <td>{{ account.updated_at }}</td>
                     <td>

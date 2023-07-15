@@ -13,7 +13,7 @@
                     {% if session.account_id %}
                         <!-- TODO: Show user name instead. -->
                         <form method="post" action="{{ url_for('log_out', uri=request.path) }}" class="log-out">
-                            Logged in as {{ account_db.get_account_twitch_user_id(account_id=session.account_id) }}
+                            Logged in as {{ id_to_display_name(account_db.get_account_twitch_user_id(account_id=session.account_id)) }}
                             <button>Log out</button>
                         </form>
                     {% endif %}

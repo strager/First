@@ -10,6 +10,7 @@
         <thead>
             <tr>
                 <th>User ID</th>
+                <th>Twitch Display Name</th>
                 <th>Created</th>
                 <th>Connected</th>
                 <th>Last message</th>
@@ -19,6 +20,7 @@
             {% for connection in eventsub_connections %}
                 <tr>
                     <th>{{ connection._twitch.get_self_user_id_fast() }}</th>
+                    <td>{{ id_to_display_name(connection._twitch.get_self_user_id_fast()) }}</td>
                     <td>{{ connection.created_timestamp }}</td>
                     <td>{{ connection.last_connected_timestamp }}</td>
                     <td>{{ connection.last_received_message_timestamp }}</td>
