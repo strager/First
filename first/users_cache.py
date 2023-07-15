@@ -4,7 +4,7 @@ import threading
 import typing
 from first.config import cfg
 from first.twitch import Twitch, AuthenticatedTwitch, TwitchUserId
-from first.errors import UserNotFoundError, UniqueUserAlreadyExists
+from first.errors import UserNotFoundError
 from first.authdb import TwitchAuthDb, TwitchAppTokenProvider
 
 from first.usersdb import TwitchUsersDb
@@ -38,7 +38,7 @@ class TwitchUserNameCache:
     def get_user_id_from_user_name(self, user_name: str) -> TwitchUserId: ...
 
     def set_user_info(self, user_id: TwitchUserId, user_login: typing.Optional[str], display_name: typing.Optional[str]):
-    """Update the cache if we happen to receive data from some Twitch API
-    (such as a redemption notification).
-    """
+        """Update the cache if we happen to receive data from some Twitch API
+        (such as a redemption notification).
+        """
         self.db.insert_or_update_user(user_id=user_id, user_login=user_login, user_name=display_name)
