@@ -112,7 +112,7 @@ def create_app_from_dependencies(
 
     @app.route("/")
     def home():
-        return flask.render_template('index.html')
+        return flask.render_template('index.html', firsts_per_streamer=points_db.get_streamers_lifetime_leaderboard())
 
     @app.get("/login")
     def log_in_view():

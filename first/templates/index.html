@@ -16,15 +16,12 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- TODO(strager): Load this data from the database. -->
-                <tr>
-                    <th><a href="/stream/strager">strager</a></th>
-                    <td>69 firsts</td>
-                </tr>
-                <tr>
-                    <th><a href="/stream/emceeMC2">emceeMC2</a></th>
-                    <td>1 first</td>
-                </tr>
+                {% for (streamer_id, firsts) in firsts_per_streamer %}
+                    <tr>
+                        <th><a href="/stream/{{ streamer_id }}">{{ streamer_id }}</a></th>
+                        <td>{{ firsts }} firsts</td>
+                    </tr>
+                {% endfor %}
             </tbody>
         </table>
     </section>
