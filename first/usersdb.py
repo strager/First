@@ -7,14 +7,14 @@ from first.db import DbBase
 from first.errors import UserNotFoundError
 from first.twitch import TwitchUserId
 
-users_config = cfg["usersdb"]
+DbPath = str
 
 class TwitchUsersDb(DbBase):
     class UserFields(typing.NamedTuple):
         login_name: str
         user_name: str
 
-    def __init__(self, db=users_config["db"]):
+    def __init__(self, db: DbPath):
         super().__init__()
         self._create_sqlite3_database(db)
         cur = self.db.cursor()
@@ -23,8 +23,8 @@ class TwitchUsersDb(DbBase):
                 "CREATE TABLE IF NOT EXISTS "
                 "users("
                     "user_id UNIQUE, "
-                    "user_login UNIQUE, "
-                    "user_name UNIQUE"
+                    "user_login, "
+                    "user_name"
                 ")"
             )
         )

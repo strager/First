@@ -9,13 +9,14 @@ from first.authdb import TwitchAuthDb, TwitchAppTokenProvider
 
 from first.usersdb import TwitchUsersDb
 
+users_config = cfg["usersdb"]
+DbPath = str
 TwitchUserId = str
 
-class TwitchUserNameCache:
-    db: TwitchUsersDb
+class TwitchUserNameCache(TwitchUsersDb):
 
-    def __init__(self):
-        self.db = TwitchUsersDb()
+    def __init__(self, db: DbPath = users_config["db"]):
+        super().__init__(db=db)
         self.twitch = AuthenticatedTwitch(TwitchAppTokenProvider())
 
     def get_display_name_from_id(self, user_id: TwitchUserId) -> str:
@@ -23,7 +24,7 @@ class TwitchUserNameCache:
         https://dev.twitch.tv/docs/api/reference/#get-users
         """
         try:
-            display_name = self.db.get_user_name_from_id(user_id)
+            display_name = self.get_user_name_from_id(user_id)
         except UserNotFoundError:
             display_name = self.twitch.get_user_display_name_by_user_id(user_id)
         return display_name
