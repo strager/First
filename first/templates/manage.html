@@ -9,9 +9,14 @@
     <form action="{{ url_for('manage_post') }}" method="POST">
         <label for="reward">Select a Reward for First!</label>
         <select name="reward" id="reward">
-        {% for (reward_id, name) in rewards %}
-        <option value={{ reward_id }}>{{ name }}</option>
-        {% endfor %}
+            <option value="">(none)</option>
+            {% for (reward_id, name) in rewards %}
+            <option value={{ reward_id }}
+                {% if reward_id == account_db.get_account_reward_id(session.account_id) %}
+                    selected
+                {% endif %}
+            >{{ name }}</option>
+            {% endfor %}
         </select>
         <input type="submit" value="Submit" />
     </form>

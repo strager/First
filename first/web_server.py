@@ -183,6 +183,9 @@ def create_app_from_dependencies(
         reward_id = flask.request.form.get('reward', None)
         if reward_id is None:
             return "", 400
+        if reward_id == "":
+            reward_id = None
+        # TODO(strager): Validate that reward_id is valid.
         account_db.set_account_reward_id(account_id=account_id, reward_id=reward_id)
         return flask.redirect(flask.url_for(manage.__name__))
 
