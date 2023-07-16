@@ -69,7 +69,8 @@ class PointsDb(DbBase):
                     "WHERE broadcaster_id = :broadcaster_id "
                     "AND redeemed_at >= date('now', 'start of month') "
                     "AND redeemed_at < date('now', 'start of month', '+1 month') "
-                    "GROUP BY user_id"
+                    "GROUP BY user_id "
+                    "ORDER BY SUM(points) DESC"
                 ),
                 data
             )
@@ -88,7 +89,8 @@ class PointsDb(DbBase):
                 (
                     "SELECT user_id, SUM(points) FROM redemptions "
                     "WHERE broadcaster_id = :broadcaster_id "
-                    "GROUP BY user_id"
+                    "GROUP BY user_id "
+                    "ORDER BY SUM(points) DESC"
                 ),
                 data
             )
@@ -109,7 +111,8 @@ class PointsDb(DbBase):
                     "WHERE user_id = :user_id "
                     "AND redeemed_at >= date('now', 'start of month') "
                     "AND redeemed_at < date('now', 'start of month', '+1 month') "
-                    "GROUP BY user_id"
+                    "GROUP BY user_id "
+                    "ORDER BY SUM(points) DESC"
                 ),
                 data
             )
@@ -129,7 +132,8 @@ class PointsDb(DbBase):
                 (
                     "SELECT SUM(points) FROM redemptions "
                     "WHERE user_id = :user_id "
-                    "GROUP BY user_id"
+                    "GROUP BY user_id "
+                    "ORDER BY SUM(points) DESC"
                 ),
                 data
             )
@@ -148,7 +152,8 @@ class PointsDb(DbBase):
                     "WHERE level = 1 "
                     "AND redeemed_at >= date('now', 'start of month') "
                     "AND redeemed_at < date('now', 'start of month', '+1 month') "
-                    "GROUP BY broadcaster_id"
+                    "GROUP BY broadcaster_id "
+                    "ORDER BY COUNT(points) DESC"
                 ),
             )
             result_fetched = result.fetchall()
@@ -163,7 +168,8 @@ class PointsDb(DbBase):
                 (
                     "SELECT broadcaster_id, COUNT(points) FROM redemptions "
                     "WHERE level = 1 "
-                    "GROUP BY broadcaster_id"
+                    "GROUP BY broadcaster_id "
+                    "ORDER BY COUNT(points) DESC"
                 ),
             )
             result_fetched = result.fetchall()
