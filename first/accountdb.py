@@ -88,6 +88,33 @@ class FirstAccountDb(DbBase):
         account_id, = result_fetched
         return account_id
 
+    def get_account_reward_id(self, account_id: FirstAccountId) -> RewardId:
+        with self._lock:
+            cur = self.db.cursor()
+            data = {
+                "account_id": account_id,
+            }
+            result = cur.execute("SELECT reward_id FROM account WHERE account_id = :account_id", data)
+            result_fetched = result.fetchone()
+        if result_fetched is None:
+            raise FirstAccountNotFoundError
+        reward_id, = result_fetched
+        return reward_id
+
+    def set_account_reward_id(self, account_id: FirstAccountId, reward_id: RewardId) -> None:
+        with self._lock:
+            cur = self.db.cursor()
+            data = {
+                "account_id": account_id,
+                "reward_id": reward_id,
+            }
+            cur.execute(
+                (
+                    "UPDATE account SET reward_id = :reward_id "
+                    "WHERE account_id = :account_id"
+                ), data)
+            self.db.commit()
+
     class AccountForTesting(typing.NamedTuple):
         account_id: FirstAccountId
         twitch_user_id: TwitchUserId
@@ -107,4 +134,3 @@ class FirstAccountDb(DbBase):
                 for (account_id, twitch_user_id, reward_id, created_at, updated_at) in rows:
                     accounts.append(self.AccountForTesting(account_id=account_id, twitch_user_id=twitch_user_id, reward_id=reward_id, created_at=created_at, updated_at=updated_at))
         return accounts
-
