@@ -17,6 +17,7 @@ import datetime
 import functools
 import base64
 from first.accountdb import FirstAccountDb, FirstAccountId
+import multiprocessing.dummy
 
 # TODO(strager): Fancier logging.
 logging.basicConfig(level=logging.INFO)
@@ -107,6 +108,8 @@ def create_app_from_dependencies(
 ) -> flask.Flask:
     app = flask.Flask(__name__)
     app.secret_key = website_config["session_secret_key"]
+
+    thread_pool = multiprocessing.dummy.Pool(processes=4)
 
     @app.context_processor
     def inject_template_globals():
@@ -217,7 +220,7 @@ def create_app_from_dependencies(
         account_id = account_db.create_or_get_account(twitch_user_id=user_id)
         flask.session['account_id'] = account_id
 
-        start_eventsub_for_user(user_id)
+        start_eventsub_for_user_async(user_id)
 
         # TODO(strager): Redirect to the user's dashboard.
         return flask.redirect("/")
@@ -251,7 +254,10 @@ def create_app_from_dependencies(
         logger.error(error)
         return error.description, 500
 
-    def start_eventsub_for_user(user_id: TwitchUserId) -> None:
+    def start_eventsub_for_user_async(user_id: TwitchUserId) -> None:
+        thread_pool.apply_async(lambda: start_eventsub_for_user_sync(user_id))
+
+    def start_eventsub_for_user_sync(user_id: TwitchUserId) -> None:
         twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, user_id))
         eventsub_websocket_manager.stop_connections_for_user(user_id)
         ws_connection = eventsub_websocket_manager.create_new_connection(twitch)
@@ -275,7 +281,7 @@ def create_app_from_dependencies(
 
     def set_up() -> None:
         for user_id in authdb.get_all_user_ids_slow():
-            start_eventsub_for_user(user_id)
+            start_eventsub_for_user_async(user_id)
 
     set_up()
     return app
