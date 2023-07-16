@@ -46,5 +46,11 @@ see how cool they are by looking at the leaderboards:
 1. Open <http://localhost:5000/>.
 2. Click your stream's name in the leaderboard.
 
+## License & copyright
+
+Copyright 2023 Juan Alberto Regalado Galvan, Matthew "strager" Glazar
+
+License: [GPL3.0-or-later](./LICENSE.txt)
+
 [Tox]: https://tox.wiki
 [register-Twitch-app]: https://dev.twitch.tv/console/apps/create
