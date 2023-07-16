@@ -110,6 +110,23 @@ class AuthenticatedTwitch:
         result = [ (x["id"], x["title"]) for x in data["data"] ]
         return result
 
+    def update_channel_reward(self, broadcaster_id: "TwitchUserId", reward_id: "RewardId", new_title: str, max_redemptions: str):
+        settings = {
+            "title": new_title,
+            "max_per_stream_setting": {
+                "is_enabled": True,
+                "max_per_stream": max_redemptions,
+            },
+            "max_per_user_per_stream_setting": {
+                "is_enabled": True,
+                "max_per_user_per_stream": 1,
+            },
+        }
+        data = self._patch_json(f"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={quote_plus(broadcaster_id)}&id={quote_plus(reward_id)}", body=settings)
+        if "error" in data:
+            raise Exception(data["message"])
+        return
+
     def request_eventsub_subscription(self, request_body) -> None:
         response = self._post_json("https://api.twitch.tv/helix/eventsub/subscriptions", body=request_body)
         # TODO(strager): Robust error handling.
@@ -130,6 +147,17 @@ class AuthenticatedTwitch:
         See _request_json for details about authentication and refreshing.
         """
         return self._request_json("POST", uri, data=json.dumps(body), headers={
+            'Content-Type': 'application/json',
+        })
+
+    def _patch_json(self, uri: str, body):
+        """Issue an HTTP PATCH request and return parsed JSON.
+
+        body must be convertible to JSON.
+
+        See _request_json for details about authentication and refreshing.
+        """
+        return self._request_json("PATCH", uri, data=json.dumps(body), headers={
             'Content-Type': 'application/json',
         })
 

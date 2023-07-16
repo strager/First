@@ -42,10 +42,12 @@ class UnexpectedTwitchOAuthError(HTTPException):
 class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
     _points_db: PointsDb
     _account_db: FirstAccountDb
+    _authdb: TwitchAuthDb
 
-    def __init__(self, points_db: PointsDb, account_db: FirstAccountDb) -> None:
+    def __init__(self, points_db: PointsDb, account_db: FirstAccountDb, authdb: TwitchAuthDb) -> None:
         self._points_db = points_db
         self._account_db = account_db
+        self._authdb = authdb
 
     def on_eventsub_notification(self,
                                  subscription_type: str,
@@ -55,13 +57,26 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
             assert subscription_version == "1"
             # TODO(strager): reward_id<->level mapping should be configured
             # per-streamer.
-            account_id = self._account_db.get_account_id_by_twitch_user_id(event_data["broadcaster_user_id"])
+            class LevelMap(typing.NamedTuple):
+                level: int
+                points: int
+                next_title: str
+            level_map = {
+                "first": LevelMap(level=1, points=5, next_title="second"),
+                "second": LevelMap(level=2, points=3, next_title="third"),
+                "third": LevelMap(level=3, points=1, next_title=None),
+            }
+            broadcaster_id = event_data["broadcaster_user_id"]
+            account_id = self._account_db.get_account_id_by_twitch_user_id(broadcaster_id)
+
             reward_id = self._account_db.get_account_reward_id(account_id)
             if reward_id == event_data["reward"]["id"]:
-                level = 1
-                points = 5
+                reward_title = event_data["reward"]["title"]
+                level = level_map[reward_title].level
+                points = level_map[reward_title].points
+                next_title = level_map[reward_title].next_title
                 self._points_db.insert_new_redemption(
-                    broadcaster_id=event_data["broadcaster_user_id"],
+                    broadcaster_id=broadcaster_id,
                     redemption_id=event_data["id"],
                     user_id=event_data["user_id"],
                     # FIXME(strager): This should come from event_data["redeemed_at"] instead.
@@ -69,6 +84,9 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
                     points=points,
                     level=level,
                 )
+                twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(self._authdb, broadcaster_id))
+                twitch.update_channel_reward(broadcaster_id, reward_id, next_title, 3-level)
+
         elif subscription_type == "channel.channel_points_custom_reward_redemption.update":
             # TODO(#13): Handle rejected redemptions.
             pass
@@ -95,11 +113,12 @@ def create_app() -> flask.Flask:
     """
     points_db = PointsDb()
     account_db = FirstAccountDb()
-    eventsub_delegate = PointsDbTwitchEventSubDelegate(points_db=points_db, account_db=account_db)
+    authdb = TwitchAuthDb()
+    eventsub_delegate = PointsDbTwitchEventSubDelegate(points_db=points_db, account_db=account_db, authdb=authdb)
     eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
     return create_app_from_dependencies(
         account_db=account_db,
-        authdb=TwitchAuthDb(),
+        authdb=authdb,
         points_db=points_db,
         eventsub_websocket_manager=eventsub_websocket_manager,
         twitch_users_cache=TwitchUserNameCache(),
