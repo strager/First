@@ -57,7 +57,7 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
             # per-streamer.
             account_id = self._account_db.get_account_id_by_twitch_user_id(event_data["broadcaster_user_id"])
             reward_id = self._account_db.get_account_reward_id(account_id)
-            if reward_id == event_data["id"]:
+            if reward_id == event_data["reward"]["id"]:
                 level = 1
                 points = 5
                 self._points_db.insert_new_redemption(
@@ -94,10 +94,11 @@ def create_app() -> flask.Flask:
     the name that Flask looks for.
     """
     points_db = PointsDb()
-    eventsub_delegate = PointsDbTwitchEventSubDelegate(points_db=points_db)
+    account_db = FirstAccountDb()
+    eventsub_delegate = PointsDbTwitchEventSubDelegate(points_db=points_db, account_db=account_db)
     eventsub_websocket_manager = TwitchEventSubWebSocketManager(TwitchEventSubWebSocketThread, eventsub_delegate)
     return create_app_from_dependencies(
-        account_db=FirstAccountDb(),
+        account_db=account_db,
         authdb=TwitchAuthDb(),
         points_db=points_db,
         eventsub_websocket_manager=eventsub_websocket_manager,

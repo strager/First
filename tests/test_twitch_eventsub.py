@@ -126,7 +126,7 @@ def test_eventsub_delegate_stores_data_in_pointsdb():
     points_db = PointsDb(":memory:")
     account_db = FirstAccountDb(":memory:")
     account_db.create_or_get_account(twitch_user_id="123")
-    account_db.set_account_reward_id("1", "addae886-719e-4427-8f19-8152a260a806")
+    account_db.set_account_reward_id("1", "b34cd9ba-40de-4953-80f8-57362376f8e0")
     delegate = PointsDbTwitchEventSubDelegate(points_db, account_db)
     delegate.on_eventsub_notification(
         subscription_type="channel.channel_points_custom_reward_redemption.add",
