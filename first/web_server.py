@@ -204,8 +204,7 @@ def create_app_from_dependencies(
         account_id: typing.Optional[FirstAccountId] = None if account_id_string is None else int(account_id_string)
         flask.session['account_id'] = account_id
 
-        # TODO(strager): Redirect to the same place as if the user logged in.
-        return flask.redirect("/")
+        return redirect_after_login()
 
     @app.get("/oauth/twitch")
     def oauth_twitch():
@@ -244,8 +243,10 @@ def create_app_from_dependencies(
 
         start_or_stop_eventsub_for_user_as_needed_async(user_id=user_id)
 
-        # TODO(strager): Redirect to the user's dashboard.
-        return flask.redirect("/")
+        return redirect_after_login()
+
+    def redirect_after_login():
+        return flask.redirect(flask.url_for(manage.__name__))
 
     @app.post("/login")
     def log_in():
