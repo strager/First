@@ -281,7 +281,10 @@ def create_app_from_dependencies(
 
     def set_up() -> None:
         for user_id in authdb.get_all_user_ids_slow():
-            start_eventsub_for_user_async(user_id)
+            start_eventsub_for_user_sync(user_id)
+
+        import atexit
+        atexit.register(lambda: thread_pool.terminate())
 
     set_up()
     return app

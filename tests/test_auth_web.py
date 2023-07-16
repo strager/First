@@ -1,4 +1,5 @@
 import json
+import time
 import pytest
 import responses
 import first.web_server
@@ -227,6 +228,7 @@ def test_log_out_with_uri_should_redirect_to_specified_uri(web_app, account_db, 
     assert url.path == "/banana/icecream", "should direct to the requested uri"
 
 @responses.activate
+@pytest.mark.slow
 def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsub_connection(web_app, authdb, websocket_manager):
     responses.post(
         "https://id.twitch.tv/oauth2/token",
@@ -270,6 +272,9 @@ def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsu
 
     # Log in a second time.
     web_app.get("/oauth/twitch?code=myauthcode&scope=channel%3Aread%3Aredemptions+channel%3Amanage%3Aredemptions")
+    # HACK(strager): EventSub management is asynchronous. Wait for it to finish
+    # TODO(strager): Reduce this timeout.
+    time.sleep(5)
 
     threads_after_second_login = websocket_manager.get_all_threads_for_testing()
     assert len(threads_before_second_login) == 1
