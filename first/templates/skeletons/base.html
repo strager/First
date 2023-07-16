@@ -11,9 +11,11 @@
             {% block login_info %}
                 <div class="common-account-info">
                     {% if session.account_id %}
-                        <!-- TODO: Show user name instead. -->
+                        Logged in as {{ id_to_display_name(account_db.get_account_twitch_user_id(account_id=session.account_id)) }}
+                        <form method="GET" action="{{ url_for('manage') }}">
+                            <button>Manage account</button>
+                        </form>
                         <form method="post" action="{{ url_for('log_out', uri=request.path) }}" class="log-out">
-                            Logged in as {{ id_to_display_name(account_db.get_account_twitch_user_id(account_id=session.account_id)) }}
                             <button>Log out</button>
                         </form>
                     {% endif %}
