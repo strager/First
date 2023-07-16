@@ -3,6 +3,7 @@ from first.pointsdb import PointsDb
 from first.twitch import AuthenticatedTwitch
 from first.twitch_eventsub import TwitchEventSubWebSocketThread, TwitchEventSubDelegate
 from first.web_server import PointsDbTwitchEventSubDelegate
+from first.accountdb import FirstAccountDb
 import contextlib
 import copy
 import json
@@ -123,7 +124,10 @@ def test_eventsub_thread_calls_delegate_on_receiving_channel_point_redemption(ex
 
 def test_eventsub_delegate_stores_data_in_pointsdb():
     points_db = PointsDb(":memory:")
-    delegate = PointsDbTwitchEventSubDelegate(points_db)
+    account_db = FirstAccountDb(":memory:")
+    account_db.create_or_get_account(twitch_user_id="123")
+    account_db.set_account_reward_id("1", "addae886-719e-4427-8f19-8152a260a806")
+    delegate = PointsDbTwitchEventSubDelegate(points_db, account_db)
     delegate.on_eventsub_notification(
         subscription_type="channel.channel_points_custom_reward_redemption.add",
         subscription_version="1",

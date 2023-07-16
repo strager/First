@@ -41,9 +41,11 @@ class UnexpectedTwitchOAuthError(HTTPException):
 
 class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
     _points_db: PointsDb
+    _account_db: FirstAccountDb
 
-    def __init__(self, points_db: PointsDb) -> None:
+    def __init__(self, points_db: PointsDb, account_db: FirstAccountDb) -> None:
         self._points_db = points_db
+        self._account_db = account_db
 
     def on_eventsub_notification(self,
                                  subscription_type: str,
@@ -53,17 +55,20 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
             assert subscription_version == "1"
             # TODO(strager): reward_id<->level mapping should be configured
             # per-streamer.
-            level = 1
-            points = 5
-            self._points_db.insert_new_redemption(
-                broadcaster_id=event_data["broadcaster_user_id"],
-                redemption_id=event_data["id"],
-                user_id=event_data["user_id"],
-                # FIXME(strager): This should come from event_data["redeemed_at"] instead.
-                redeemed_at=datetime.datetime.now(),
-                points=points,
-                level=level,
-            )
+            account_id = self._account_db.get_account_id_by_twitch_user_id(event_data["broadcaster_user_id"])
+            reward_id = self._account_db.get_account_reward_id(account_id)
+            if reward_id == event_data["id"]:
+                level = 1
+                points = 5
+                self._points_db.insert_new_redemption(
+                    broadcaster_id=event_data["broadcaster_user_id"],
+                    redemption_id=event_data["id"],
+                    user_id=event_data["user_id"],
+                    # FIXME(strager): This should come from event_data["redeemed_at"] instead.
+                    redeemed_at=datetime.datetime.now(),
+                    points=points,
+                    level=level,
+                )
         elif subscription_type == "channel.channel_points_custom_reward_redemption.update":
             # TODO(#13): Handle rejected redemptions.
             pass
