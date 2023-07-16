@@ -126,6 +126,8 @@ def test_oauth_twitch_success_starts_eventsub_connection(web_app, authdb, websoc
     )
 
     web_app.get("/oauth/twitch?code=myauthcode&scope=channel%3Aread%3Aredemptions+channel%3Amanage%3Aredemptions")
+    # HACK(strager): See HACK[EventSub-async-start].
+    time.sleep(1)
 
     websocket_threads = websocket_manager.get_all_threads_for_testing()
     assert len(websocket_threads) == 1, "should have started one thread after authenticating"
@@ -272,9 +274,9 @@ def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsu
 
     # Log in a second time.
     web_app.get("/oauth/twitch?code=myauthcode&scope=channel%3Aread%3Aredemptions+channel%3Amanage%3Aredemptions")
-    # HACK(strager): EventSub management is asynchronous. Wait for it to finish
-    # TODO(strager): Reduce this timeout.
-    time.sleep(5)
+    # HACK[EventSub-async-start]: EventSub management is asynchronous. Wait for
+    # it to finish.
+    time.sleep(10)
 
     threads_after_second_login = websocket_manager.get_all_threads_for_testing()
     assert len(threads_before_second_login) == 1
