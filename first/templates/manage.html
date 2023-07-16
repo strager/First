@@ -1,0 +1,18 @@
+{% extends "skeletons/base.html" %}
+{% block title %}Manage your First! App{% endblock %}
+
+{% block header %}
+    <p>First! account manager</p>
+{% endblock %}
+
+{% block body %}
+    <form action="#">
+        <label for="reward">Select a Reward for First!</label>
+        <select name="languages" id="reward">
+        {% for (reward_id, name) in rewards %}
+        <option value={{ reward_id }}>{{ name }}</option>
+        {% endfor %}
+        </select>
+        <input type="submit" value="Submit" />
+    </form>
+{% endblock %}

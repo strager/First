@@ -159,6 +159,19 @@ def create_app_from_dependencies(
             id_to_display_name=twitch_users_cache.get_display_name_from_id,
         )
 
+    @app.get("/manage.html")
+    def manage():
+        account_id = flask.session.get('account_id', None)
+        if account_id is None:
+            return "", 404
+        user_id = account_db.get_account_twitch_user_id(account_id)
+        twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, user_id))
+        return flask.render_template(
+            'manage.html',
+            id_to_display_name=twitch_users_cache.get_display_name_from_id,
+            rewards=twitch.get_all_channel_reward_ids(user_id),
+        )
+
     @app.post("/admin/impersonate")
     @requires_admin_auth
     def admin_impersonate():

@@ -74,6 +74,14 @@ class AuthenticatedTwitch:
         # TODO(strager): Robust error handling.
         return data["data"][0]["display_name"]
 
+    def get_all_channel_reward_ids(self, broadcaster_id: "TwitchUserId") -> typing.List[typing.Tuple["RewardId", str]]:
+        data = self._get_json(f"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={quote_plus(broadcaster_id)}")
+        print(data)
+        if "error" in data:
+            raise Exception(data["message"])
+        result = [ (x["id"], x["title"]) for x in data["data"] ]
+        return result
+
     def request_eventsub_subscription(self, request_body) -> None:
         response = self._post_json("https://api.twitch.tv/helix/eventsub/subscriptions", body=request_body)
         # TODO(strager): Robust error handling.
