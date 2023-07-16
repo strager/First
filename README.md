@@ -2,6 +2,8 @@
 
 First! is a Twitch app for the first people to join your streams.
 
+First! is written in Python 🐍
+
 Key features:
 
 * Leaderboards
