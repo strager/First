@@ -52,12 +52,11 @@ class FirstAccountDb(DbBase):
         account_id, = result_fetched
         return account_id
 
-    def create_or_get_account(self, twitch_user_id: TwitchUserId, reward_id: typing.Optional[RewardId] = None) -> FirstAccountId:
+    def create_or_get_account(self, twitch_user_id: TwitchUserId) -> FirstAccountId:
         with self._lock:
             cur = self.db.cursor()
             data = {
                 "twitch_user_id": twitch_user_id,
-                "reward_id": reward_id,
             }
             # NOTE(strager): lastrowid is unreliable. Use RETURNING instead.
             # NOTE(strager): If we ignore on duplicates ('INSERT OR IGNORE' or
@@ -65,8 +64,8 @@ class FirstAccountDb(DbBase):
             # no-op UPDATE SET.
             result = cur.execute(
                 (
-                    "INSERT INTO account (twitch_user_id, reward_id) "
-                    "VALUES (:twitch_user_id, :reward_id) "
+                    "INSERT INTO account (twitch_user_id) "
+                    "VALUES (:twitch_user_id) "
                     "ON CONFLICT DO UPDATE SET twitch_user_id = twitch_user_id "
                     "RETURNING account_id"
                 ),
