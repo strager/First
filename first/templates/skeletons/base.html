@@ -7,7 +7,7 @@
     </head>
     <body>
         <header>
-            <h1><a href="{{ url_for('home') }}">First!</a></h1>
+            <h1><a href="{{ url_for('home') }}"><img src="{{ url_for('static', filename='1st.svg') }}" alt="" width="43" height="30"> First!</a></h1>
             {% block login_info %}
                 <div class="common-account-info">
                     {% if session.account_id %}

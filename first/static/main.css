@@ -23,6 +23,11 @@ header > .common-account-info {
     grid-area: account-info;
 }
 
+header h1 a {
+    text-decoration: none;
+    color: inherit;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;

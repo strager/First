@@ -1,4 +1,4 @@
-# First!
+# ![](./first/static/1st.png) First!
 
 First! is a Twitch app for the first people to join your streams.
 
