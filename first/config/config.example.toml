@@ -7,9 +7,13 @@ admin_password = "ADMINISTRATOR_PASSWORD"
 session_secret_key = ""
 
 [twitch]
+# Copy these settings from your Twitch application in the Twitch developer
+# console. https://dev.twitch.tv/console
 client_id = "CLIENT_ID"
 client_secret = "CLIENT_SECRET"
 
+
+# Leave the remaining settings at their defaults unless you have a reason to change them.
 [accountsdb]
 db = "accounts.db"
 
