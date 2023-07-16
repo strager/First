@@ -28,27 +28,19 @@ Key features:
 
 ## Setting up your stream
 
-1. Create a channel point reward named "first":
-   1. Visit your stream's channel point rewards settings:
-      `https://dashboard.twitch.tv/u/YOURTWITCHNAME/viewer-rewards/channel-points/rewards`
-   2. Create a new channel point reward with the following settings:  
-      **Reward Name**: `first` (case sensitive)  
-      **Require Viewer To Enter Text**: off  
-      **Cost**: whatever you want (recommended: `1`)  
-      **Skip Reward Request Queue**: on  
-      **Cooldowns & Limits**: on  
-      **Limit Redemptions Per Stream**: `1`  
-      **Limit Redemptions Per User Per Stream**: `1`
-   3. Press "Save".
-2. Open <http://localhost:5000/>.
-3. Click the "Add First! to Twitch" button at the bottom.
-4. In the Twitch UI, allow the login. This should redirect you to
+1. Open <http://localhost:5000/>.
+2. Click the "Add First! to Twitch" button at the bottom.
+3. In the Twitch UI, allow the login. This should redirect you to
    your First! settings dashboard (<http://localhost:5000/manage.html>).
-5. Under "Select a Reward for First", choose the reward named "first"
-   that you created.
-6. Press "Submit".
+4. Under "Have First! create your first channel point reward
+   automatically", choose a channel point cost then press "Create
+   reward".
 
-After viewers redeem the "first", "second", and "third" rewards, you can
+A new channel point reward titled "first" should now be enabled for your
+Twitch stream. It will automatically be changed to "second" or "third"
+as appropriate.
+
+After viewers redeem the "first", "second", or "third" rewards, you can
 see how cool they are by looking at the leaderboards:
 
 1. Open <http://localhost:5000/>.

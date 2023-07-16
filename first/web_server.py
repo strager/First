@@ -197,6 +197,35 @@ def create_app_from_dependencies(
         start_or_stop_eventsub_for_user_as_needed_async(user_id=account_db.get_account_twitch_user_id(account_id))
         return flask.redirect(flask.url_for(manage.__name__))
 
+    @app.post("/create-first-reward")
+    def create_first_reward():
+        account_id = flask.session.get('account_id', None)
+        if account_id is None:
+            return "", 404
+        cost = flask.request.form.get('cost', None)
+        if cost is None:
+            return "", 400
+        cost = int(cost) # TODO(strager): Validate safely.
+
+        twitch_user_id = account_db.get_account_twitch_user_id(account_id)
+        twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, twitch_user_id))
+        reward_id = twitch.create_custom_channel_points_reward(
+            broadcaster_id = twitch_user_id,
+            title = "first",
+            cost = cost,
+            is_enabled = True,
+            is_user_input_required = False,
+            is_max_per_stream_enabled = True,
+            max_per_stream = 1,
+            is_max_per_user_per_stream_enabled = True,
+            max_per_user_per_stream = 1,
+            should_redemptions_skip_request_queue = True,
+        )
+        account_db.set_account_reward_id(account_id=account_id, reward_id=reward_id)
+
+        start_or_stop_eventsub_for_user_as_needed_async(user_id=account_db.get_account_twitch_user_id(account_id))
+        return flask.redirect(flask.url_for(manage.__name__), code=303)
+
     @app.post("/admin/impersonate")
     @requires_admin_auth
     def admin_impersonate():

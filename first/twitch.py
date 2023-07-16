@@ -74,6 +74,34 @@ class AuthenticatedTwitch:
         # TODO(strager): Robust error handling.
         return data["data"][0]["display_name"]
 
+    def create_custom_channel_points_reward(
+        self,
+        broadcaster_id: TwitchUserId,
+        title: str,
+        cost: int,
+        is_enabled: typing.Optional[bool] = None,
+        is_user_input_required: typing.Optional[bool] = None,
+        is_max_per_stream_enabled: typing.Optional[bool] = None,
+        max_per_stream: typing.Optional[int] = None,
+        is_max_per_user_per_stream_enabled: typing.Optional[bool] = None,
+        max_per_user_per_stream: typing.Optional[int] = None,
+        should_redemptions_skip_request_queue: typing.Optional[bool] = None,
+    ) -> "RewardId":
+        request_body = {
+            "title": title,
+            "cost": cost,
+        }
+        if is_enabled is not None: request_body["is_enabled"] = is_enabled
+        if is_user_input_required is not None: request_body["is_user_input_required"] = is_user_input_required
+        if is_max_per_stream_enabled is not None: request_body["is_max_per_stream_enabled"] = is_max_per_stream_enabled
+        if max_per_stream is not None: request_body["max_per_stream"] = max_per_stream
+        if is_max_per_user_per_stream_enabled is not None: request_body["is_max_per_user_per_stream_enabled"] = is_max_per_user_per_stream_enabled
+        if max_per_user_per_stream is not None: request_body["max_per_user_per_stream"] = max_per_user_per_stream
+        if should_redemptions_skip_request_queue is not None: request_body["should_redemptions_skip_request_queue"] = should_redemptions_skip_request_queue
+        data = self._post_json(f"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={quote_plus(broadcaster_id)}", request_body)
+        # TODO(strager): Robust error handling.
+        return data["data"][0]["id"]
+
     def get_all_channel_reward_ids(self, broadcaster_id: "TwitchUserId") -> typing.List[typing.Tuple["RewardId", str]]:
         data = self._get_json(f"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={quote_plus(broadcaster_id)}")
         print(data)

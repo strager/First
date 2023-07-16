@@ -1,12 +1,17 @@
 import base64
+import urllib.parse
+import responses
 import time
 import pytest
 import first.web_server
 from first.accountdb import FirstAccountDb
 from first.authdb import TwitchAuthDb, UserNotFoundError
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
+import first.config
 from .mock_config import set_admin_password
 from .http_basic_auth import http_basic_auth_headers, base64_encode_str
+
+twitch_config = first.config.cfg["twitch"]
 
 @pytest.fixture
 def authdb():
@@ -114,6 +119,53 @@ def test_setting_reward_id_starts_eventsub_connection(web_app, account_db, authd
     websocket_threads = websocket_manager.get_all_threads_for_testing()
     assert len(websocket_threads) == 1, "should have started a thread"
     assert websocket_threads[0].running
+
+@responses.activate
+def test_creating_first_reward_sets_reward_id(web_app, account_db, authdb, websocket_manager, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="123")
+    authdb.update_or_create_user(user_id="123", access_token="a", refresh_token="r")
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+
+    responses.post(
+        "https://api.twitch.tv/helix/channel_points/custom_rewards",
+        json={
+            "data": [
+                {
+                    "id": "new-reward-id",
+                },
+            ]
+        },
+        match=[
+            responses.matchers.query_param_matcher({
+                "broadcaster_id": "123",
+            }),
+            responses.matchers.json_params_matcher({
+                "title": "first",
+                "cost": 10,
+                "is_enabled": True,
+                "is_user_input_required": False,
+                "is_max_per_stream_enabled": True,
+                "max_per_stream": 1,
+                "is_max_per_user_per_stream_enabled": True,
+                "max_per_user_per_stream": 1,
+                "should_redemptions_skip_request_queue": True,
+            }),
+        ],
+    )
+
+    response = web_app.post("/create-first-reward", data={
+        "cost": 10,
+    })
+
+    assert response.status_code == 303, "should redirect with a GET request"
+    url = urllib.parse.urlparse(response.headers["location"])
+    assert url.path == "/manage.html", "should direct to the manage page"
+
+    assert account_db.get_account_reward_id(account_id) == "new-reward-id"
 
 @pytest.mark.slow
 def test_unsetting_reward_id_stops_eventsub_connection(web_app, account_db, authdb, websocket_manager, set_admin_password):
