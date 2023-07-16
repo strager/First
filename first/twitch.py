@@ -110,17 +110,13 @@ class AuthenticatedTwitch:
         result = [ (x["id"], x["title"]) for x in data["data"] ]
         return result
 
-    def update_channel_reward(self, broadcaster_id: "TwitchUserId", reward_id: "RewardId", new_title: str, max_redemptions: str):
+    def update_channel_reward(self, broadcaster_id: "TwitchUserId", reward_id: "RewardId", new_title: str, max_redemptions: int):
         settings = {
             "title": new_title,
-            "max_per_stream_setting": {
-                "is_enabled": True,
-                "max_per_stream": max_redemptions,
-            },
-            "max_per_user_per_stream_setting": {
-                "is_enabled": True,
-                "max_per_user_per_stream": 1,
-            },
+            "is_max_per_stream_enabled": True,
+            "max_per_stream": max_redemptions,
+            "is_max_per_user_per_stream_enabled": True,
+            "max_per_user_per_stream": 1,
         }
         data = self._patch_json(f"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={quote_plus(broadcaster_id)}&id={quote_plus(reward_id)}", body=settings)
         if "error" in data:

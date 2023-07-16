@@ -59,12 +59,13 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
             # per-streamer.
             class LevelMap(typing.NamedTuple):
                 level: int
+                next_max_redemptions: int
                 points: int
                 next_title: str
             level_map = {
-                "first": LevelMap(level=1, points=5, next_title="second"),
-                "second": LevelMap(level=2, points=3, next_title="third"),
-                "third": LevelMap(level=3, points=1, next_title=None),
+                "first": LevelMap(level=1, next_max_redemptions=2, points=5, next_title="second"),
+                "second": LevelMap(level=2, next_max_redemptions=3, points=3, next_title="third"),
+                "third": LevelMap(level=3, next_max_redemptions=1, points=1, next_title="first"),
             }
             broadcaster_id = event_data["broadcaster_user_id"]
             account_id = self._account_db.get_account_id_by_twitch_user_id(broadcaster_id)
@@ -85,7 +86,7 @@ class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
                     level=level,
                 )
                 twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(self._authdb, broadcaster_id))
-                twitch.update_channel_reward(broadcaster_id, reward_id, next_title, 3-level)
+                twitch.update_channel_reward(broadcaster_id, reward_id, next_title, max_redemptions=level_map[reward_title].next_max_redemptions)
 
         elif subscription_type == "channel.channel_points_custom_reward_redemption.update":
             # TODO(#13): Handle rejected redemptions.
