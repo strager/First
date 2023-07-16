@@ -26,11 +26,13 @@
         </table>
     </section>
 
-    <section>
-        <h2>Register your stream</h2>
-        <p>Are you a Twitch streamer? Add <i>First!</i> to your own stream:</p>
-        <form method="POST" action="{{ url_for('log_in') }}">
-            <button>Add First! to Twitch</button>
-        </form>
-    </section>
+    {% if not session.account_id %}
+        <section>
+            <h2>Register your stream</h2>
+            <p>Are you a Twitch streamer? Add <i>First!</i> to your own stream:</p>
+            <form method="POST" action="{{ url_for('log_in') }}">
+                <button>Add First! to Twitch</button>
+            </form>
+        </section>
+    {% endif %}
 {% endblock %}
