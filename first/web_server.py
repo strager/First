@@ -193,6 +193,8 @@ def create_app_from_dependencies(
             reward_id = None
         # TODO(strager): Validate that reward_id is valid.
         account_db.set_account_reward_id(account_id=account_id, reward_id=reward_id)
+
+        start_or_stop_eventsub_for_user_as_needed_async(user_id=account_db.get_account_twitch_user_id(account_id))
         return flask.redirect(flask.url_for(manage.__name__))
 
     @app.post("/admin/impersonate")
@@ -240,7 +242,7 @@ def create_app_from_dependencies(
         account_id = account_db.create_or_get_account(twitch_user_id=user_id)
         flask.session['account_id'] = account_id
 
-        start_eventsub_for_user_async(user_id)
+        start_or_stop_eventsub_for_user_as_needed_async(user_id=user_id)
 
         # TODO(strager): Redirect to the user's dashboard.
         return flask.redirect("/")
@@ -274,21 +276,27 @@ def create_app_from_dependencies(
         logger.error(error)
         return error.description, 500
 
-    def start_eventsub_for_user_async(user_id: TwitchUserId) -> None:
-        thread_pool.apply_async(lambda: start_eventsub_for_user_sync(user_id))
+    def start_or_stop_eventsub_for_user_as_needed_async(user_id: TwitchUserId) -> None:
+        thread_pool.apply_async(lambda: start_or_stop_eventsub_for_user_as_needed_sync(user_id))
 
-    def start_eventsub_for_user_sync(user_id: TwitchUserId) -> None:
-        twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, user_id))
+    def start_or_stop_eventsub_for_user_as_needed_sync(user_id: TwitchUserId) -> None:
+        should_be_running = account_db.get_account_reward_id(account_db.get_account_id_by_twitch_user_id(user_id)) is not None
+
+        # TODO(robustness): We should stop the old connection only after the new
+        # connection is subscribed.
         eventsub_websocket_manager.stop_connections_for_user(user_id)
-        ws_connection = eventsub_websocket_manager.create_new_connection(twitch)
-        ws_connection.add_subscription(
-            type="channel.channel_points_custom_reward_redemption.add",
-            version="1",
-            condition={
-                "broadcaster_user_id": user_id,
-            },
-        )
-        ws_connection.start_thread()
+
+        if should_be_running:
+            twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, user_id))
+            ws_connection = eventsub_websocket_manager.create_new_connection(twitch)
+            ws_connection.add_subscription(
+                type="channel.channel_points_custom_reward_redemption.add",
+                version="1",
+                condition={
+                    "broadcaster_user_id": user_id,
+                },
+            )
+            ws_connection.start_thread()
 
     @app.route("/api/whoami")
     def api_whoami():
@@ -300,8 +308,8 @@ def create_app_from_dependencies(
         return flask.url_for(oauth_twitch.__name__, _external=True)
 
     def set_up() -> None:
-        for user_id in authdb.get_all_user_ids_slow():
-            start_eventsub_for_user_sync(user_id)
+        for user_id in account_db.get_all_twitch_user_ids_with_any_reward_id():
+            start_or_stop_eventsub_for_user_as_needed_sync(user_id)
 
         import atexit
         atexit.register(lambda: thread_pool.terminate())

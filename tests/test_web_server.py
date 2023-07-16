@@ -1,6 +1,8 @@
 import base64
+import time
 import pytest
 import first.web_server
+from first.accountdb import FirstAccountDb
 from first.authdb import TwitchAuthDb, UserNotFoundError
 from first.twitch_eventsub import TwitchEventSubWebSocketManager, FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate
 from .mock_config import set_admin_password
@@ -12,24 +14,40 @@ def authdb():
     return authdb
 
 @pytest.fixture
+def account_db():
+    account_db = FirstAccountDb(":memory:")
+    return account_db
+
+@pytest.fixture
 def websocket_manager():
     return TwitchEventSubWebSocketManager(FakeTwitchEventSubWebSocketThread, stub_twitch_eventsub_delegate)
 
 @pytest.fixture
-def web_app(authdb, websocket_manager):
-    app = first.web_server.create_app_for_testing(authdb=authdb, eventsub_websocket_manager=websocket_manager)
+def web_app(authdb, websocket_manager, account_db):
+    app = first.web_server.create_app_for_testing(account_db=account_db, authdb=authdb, eventsub_websocket_manager=websocket_manager)
     app.debug = True
     return app.test_client()
 
-def test_new_eventsub_connection_for_logged_in_users_on_start(authdb, websocket_manager):
+def test_new_eventsub_connection_for_logged_in_users_with_reward_id_on_start(authdb, websocket_manager, account_db):
     authdb.update_or_create_user(user_id="1", access_token="a1", refresh_token="r1")
-    authdb.update_or_create_user(user_id="2", access_token="a2", refresh_token="r2")
+    account_1_id = account_db.create_or_get_account(twitch_user_id="1")
+    account_db.set_account_reward_id(account_1_id, "111")
 
-    app = first.web_server.create_app_for_testing(authdb=authdb, eventsub_websocket_manager=websocket_manager)
+    authdb.update_or_create_user(user_id="2", access_token="a2", refresh_token="r2")
+    account_2_id = account_db.create_or_get_account(twitch_user_id="2")
+    account_db.set_account_reward_id(account_2_id, "222")
+
+    # No reward ID for account_3_id.
+    authdb.update_or_create_user(user_id="3", access_token="a3", refresh_token="r3")
+    account_3_id = account_db.create_or_get_account(twitch_user_id="3")
+
+    assert set(account_db.get_all_twitch_user_ids_with_any_reward_id()) == {"1", "2"}
+
+    app = first.web_server.create_app_for_testing(account_db=account_db, authdb=authdb, eventsub_websocket_manager=websocket_manager)
     app.debug = True
 
     threads = websocket_manager.get_all_threads_for_testing()
-    assert len(threads) == 2
+    assert len(threads) == 2, "should have a thread for accounts 1 and 2 but not account 3"
     assert all(thread.running for thread in threads)
 
 admin_endpoints = ["/admin", "/admin/eventsub"]
@@ -73,3 +91,62 @@ def test_admin_pages_fail_with_malformed_password_header(web_app, set_admin_pass
             "Authorization": www_authenticate_header,
         })
         assert response.status_code == 401, "should be unauthorized"
+
+@pytest.mark.slow
+def test_setting_reward_id_starts_eventsub_connection(web_app, account_db, authdb, websocket_manager, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="123")
+    account_db.set_account_reward_id(account_id, "reward-id")
+    authdb.update_or_create_user(user_id="123", access_token="a", refresh_token="r")
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+
+    response = web_app.post("/manage.html", data={
+        "reward": "1234"
+    })
+    assert 200 <= response.status_code < 400
+    # HACK[EventSub-async-start]: EventSub management is asynchronous. Wait for
+    # it to finish.
+    time.sleep(1)
+
+    websocket_threads = websocket_manager.get_all_threads_for_testing()
+    assert len(websocket_threads) == 1, "should have started a thread"
+    assert websocket_threads[0].running
+
+@pytest.mark.slow
+def test_unsetting_reward_id_stops_eventsub_connection(web_app, account_db, authdb, websocket_manager, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="123")
+    account_db.set_account_reward_id(account_id, "reward-id")
+    authdb.update_or_create_user(user_id="123", access_token="a", refresh_token="r")
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+
+    # Start an EventSub connection.
+    response = web_app.post("/manage.html", data={
+        "reward": "1234"
+    })
+    assert 200 <= response.status_code < 400
+
+    # HACK[EventSub-async-start]: EventSub management is asynchronous. Wait for
+    # it to finish.
+    time.sleep(1)
+
+    account_db.set_account_reward_id(account_id, None)
+
+    # Stop the EventSub connection.
+    response = web_app.post("/manage.html", data={
+        "reward": ""
+    })
+    assert 200 <= response.status_code < 400
+
+    # HACK[EventSub-async-start]: EventSub management is asynchronous. Wait for
+    # it to finish.
+    time.sleep(1)
+
+    websocket_threads = websocket_manager.get_all_threads_for_testing()
+    assert len(websocket_threads) == 0, "should have stopped the thread"

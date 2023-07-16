@@ -100,7 +100,7 @@ def test_oauth_twitch_success(web_app, authdb):
     assert res.status_code in (302, 303), "should redirect"
 
 @responses.activate
-def test_oauth_twitch_success_starts_eventsub_connection(web_app, authdb, websocket_manager):
+def test_oauth_twitch_success_does_not_start_eventsub_connection(web_app, authdb, websocket_manager):
     responses.post(
         "https://id.twitch.tv/oauth2/token",
         json={
@@ -126,12 +126,9 @@ def test_oauth_twitch_success_starts_eventsub_connection(web_app, authdb, websoc
     )
 
     web_app.get("/oauth/twitch?code=myauthcode&scope=channel%3Aread%3Aredemptions+channel%3Amanage%3Aredemptions")
-    # HACK(strager): See HACK[EventSub-async-start].
-    time.sleep(1)
 
     websocket_threads = websocket_manager.get_all_threads_for_testing()
-    assert len(websocket_threads) == 1, "should have started one thread after authenticating"
-    assert websocket_threads[0].running
+    assert len(websocket_threads) == 0, "should not have started a thread after authenticating"
 
 @responses.activate
 def test_oauth_twitch_success_logs_in_with_first_account(web_app, authdb, account_db):
@@ -231,7 +228,23 @@ def test_log_out_with_uri_should_redirect_to_specified_uri(web_app, account_db, 
 
 @responses.activate
 @pytest.mark.slow
-def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsub_connection(web_app, authdb, websocket_manager):
+def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsub_connection(web_app, authdb, websocket_manager, account_db, set_admin_password):
+    account_id = account_db.create_or_get_account(twitch_user_id="12345")
+    account_db.set_account_reward_id(account_id, "reward-id")
+    authdb.update_or_create_user(user_id="12345", access_token="old_access_token", refresh_token="old_refresh_token")
+    set_admin_password("hunter12")
+    impersonate_response = web_app.post("/admin/impersonate", data={
+        "account_id": str(account_id),
+    }, headers=http_basic_auth_headers("admin", "hunter12"))
+    assert 200 <= impersonate_response.status_code < 400
+    # Start an EventSub connection.
+    response = web_app.post("/manage.html", data={
+        "reward": "1234"
+    })
+    assert 200 <= response.status_code < 400
+
+    print("done impersonating; EventSub threads should be starting or started")
+
     responses.post(
         "https://id.twitch.tv/oauth2/token",
         json={
@@ -270,16 +283,19 @@ def test_oauth_twitch_for_already_started_user_closes_old_and_starts_new_eventsu
         },
     )
 
-    threads_before_second_login = websocket_manager.get_all_threads_for_testing()
+    # HACK[EventSub-async-start]: EventSub management is asynchronous. Wait for
+    # it to finish.
+    time.sleep(1)
+    threads_before_login = websocket_manager.get_all_threads_for_testing()
 
-    # Log in a second time.
+    # Log in, forcing new OAuth tokens.
     web_app.get("/oauth/twitch?code=myauthcode&scope=channel%3Aread%3Aredemptions+channel%3Amanage%3Aredemptions")
     # HACK[EventSub-async-start]: EventSub management is asynchronous. Wait for
     # it to finish.
-    time.sleep(10)
+    time.sleep(1)
 
-    threads_after_second_login = websocket_manager.get_all_threads_for_testing()
-    assert len(threads_before_second_login) == 1
-    assert len(threads_after_second_login) == 1
-    assert not threads_before_second_login[0].running, "old thread should have stopped"
-    assert threads_after_second_login[0].running, "new thread should be running"
+    threads_after_login = websocket_manager.get_all_threads_for_testing()
+    assert len(threads_before_login) == 1
+    assert len(threads_after_login) == 1
+    assert not threads_before_login[0].running, "old thread should have stopped"
+    assert threads_after_login[0].running, "new thread should be running"

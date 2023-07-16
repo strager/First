@@ -115,6 +115,19 @@ class FirstAccountDb(DbBase):
                 ), data)
             self.db.commit()
 
+    def get_all_twitch_user_ids_with_any_reward_id(self) -> typing.List[TwitchUserId]:
+        twitch_user_ids = []
+        with self._lock:
+            cur = self.db.cursor()
+            result = cur.execute("SELECT twitch_user_id FROM account WHERE reward_id IS NOT NULL")
+            while True:
+                rows = result.fetchmany()
+                if not rows:
+                    break
+                for (twitch_user_id, ) in rows:
+                    twitch_user_ids.append(twitch_user_id)
+        return twitch_user_ids
+
     class AccountForTesting(typing.NamedTuple):
         account_id: FirstAccountId
         twitch_user_id: TwitchUserId
