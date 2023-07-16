@@ -175,6 +175,17 @@ def create_app_from_dependencies(
             rewards=twitch.get_all_channel_reward_ids(user_id),
         )
 
+    @app.post("/manage.html")
+    def manage_post():
+        account_id = flask.session.get('account_id', None)
+        if account_id is None:
+            return "", 404
+        reward_id = flask.request.form.get('reward', None)
+        if reward_id is None:
+            return "", 400
+        account_db.set_account_reward_id(account_id=account_id, reward_id=reward_id)
+        return flask.redirect(flask.url_for(manage.__name__))
+
     @app.post("/admin/impersonate")
     @requires_admin_auth
     def admin_impersonate():

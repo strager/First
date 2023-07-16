@@ -6,9 +6,9 @@
 {% endblock %}
 
 {% block body %}
-    <form action="#">
+    <form action="{{ url_for('manage_post') }}" method="POST">
         <label for="reward">Select a Reward for First!</label>
-        <select name="languages" id="reward">
+        <select name="reward" id="reward">
         {% for (reward_id, name) in rewards %}
         <option value={{ reward_id }}>{{ name }}</option>
         {% endfor %}

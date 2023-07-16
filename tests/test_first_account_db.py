@@ -47,7 +47,6 @@ def test_get_twitch_user_for_non_existing_account():
     account_db = FirstAccountDb(":memory:")
     with pytest.raises(FirstAccountNotFoundError):
         account_db.get_account_twitch_user_id(account_id=420)
-
 def test_set_account_reward_id():
     account_db = FirstAccountDb(":memory:")
     account_id = account_db.create_or_get_account(
