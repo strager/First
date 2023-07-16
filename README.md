@@ -1,6 +1,8 @@
-# ![](./first/static/1st.png) First!
+# [![](./first/static/1st.png) First!][first]
 
 First! is a Twitch app for the first people to join your streams.
+
+[Try First! yourself (production hosted version)][first]
 
 First! is written in Python 🐍
 
@@ -53,4 +55,5 @@ Copyright 2023 Juan Alberto Regalado Galvan, Matthew "strager" Glazar
 License: [GPL3.0-or-later](./LICENSE.txt)
 
 [Tox]: https://tox.wiki
+[first]: https://first.strager.net/
 [register-Twitch-app]: https://dev.twitch.tv/console/apps/create
