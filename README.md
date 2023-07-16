@@ -17,7 +17,7 @@ Key features:
 4. Create a virtual Python environment: `python3 -m venv ENV`
 5. Install [Tox][] in the virtual Python environment: `ENV/bin/pip install tox`.
 6. Create a Twitch application:
-   1. Visit the [Twitch application registration page](register-Twitch-app).
+   1. Visit the [Twitch application registration page][register-Twitch-app].
    2. Write any application name allowed by Twitch. Try: "First in chat"
    3. Under OAuth Redirect URLs, write: `http://localhost:5000/`
    4. Press Create.
