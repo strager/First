@@ -8,6 +8,7 @@ if typing.TYPE_CHECKING:
     from first.authdb import Token, TokenProvider
 
 TwitchUserId = str
+RewardId = str
 
 twitch_config = first.config.cfg["twitch"]
 
@@ -36,9 +37,9 @@ class Twitch:
             "client_secret": twitch_config["client_secret"],
             "refresh_token": refresh_token,
         }
-        refresh_result = requests.post("https://id.twitch.tv/oauth2/token", data=refresh_data)
+        refresh_response = requests.post("https://id.twitch.tv/oauth2/token", data=refresh_data)
         # TODO(strager): Handle errors.
-        refresh_result = refresh_result.json()
+        refresh_result = refresh_response.json()
         return self.RefreshAuthTokenResult(
             new_access_token=refresh_result["access_token"],
             new_refresh_token=refresh_result["refresh_token"],
@@ -86,7 +87,7 @@ class AuthenticatedTwitch:
         is_max_per_user_per_stream_enabled: typing.Optional[bool] = None,
         max_per_user_per_stream: typing.Optional[int] = None,
         should_redemptions_skip_request_queue: typing.Optional[bool] = None,
-    ) -> "RewardId":
+    ) -> RewardId:
         request_body = {
             "title": title,
             "cost": cost,
@@ -102,7 +103,7 @@ class AuthenticatedTwitch:
         # TODO(strager): Robust error handling.
         return data["data"][0]["id"]
 
-    def get_all_channel_reward_ids(self, broadcaster_id: "TwitchUserId") -> typing.List[typing.Tuple["RewardId", str]]:
+    def get_all_channel_reward_ids(self, broadcaster_id: "TwitchUserId") -> typing.List[typing.Tuple[RewardId, str]]:
         data = self._get_json(f"https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={quote_plus(broadcaster_id)}")
         print(data)
         if "error" in data:
@@ -110,7 +111,7 @@ class AuthenticatedTwitch:
         result = [ (x["id"], x["title"]) for x in data["data"] ]
         return result
 
-    def update_channel_reward(self, broadcaster_id: "TwitchUserId", reward_id: "RewardId", new_title: str, max_redemptions: int):
+    def update_channel_reward(self, broadcaster_id: "TwitchUserId", reward_id: RewardId, new_title: str, max_redemptions: int):
         settings = {
             "title": new_title,
             "is_max_per_stream_enabled": True,
@@ -166,7 +167,7 @@ class AuthenticatedTwitch:
         fails with an authentication error.
         """
         extra_headers = requests_kwargs.pop("headers", {})
-        def issue_request() -> None:
+        def issue_request() -> requests.Response:
             headers = {
                 "Authorization": f"Bearer {self._auth_token_provider.get_access_token()}",
                 "Client-Id": twitch_config["client_id"],

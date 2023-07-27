@@ -35,8 +35,7 @@ class UnexpectedTwitchOAuthError(HTTPException):
         self.error = error
         self.error_description = error_description
 
-    @property
-    def description(self) -> str:
+    def get_description(self) -> str: # type: ignore[override]
         return f"Error from Twitch: {self.error_description} (code: {self.error})"
 
 class PointsDbTwitchEventSubDelegate(TwitchEventSubDelegate):
@@ -222,10 +221,10 @@ def create_app_from_dependencies(
         account_id = flask.session.get('account_id', None)
         if account_id is None:
             return "", 404
-        cost = flask.request.form.get('cost', None)
-        if cost is None:
+        form_cost = flask.request.form.get('cost', None)
+        if form_cost is None:
             return "", 400
-        cost = int(cost) # TODO(strager): Validate safely.
+        cost = int(form_cost) # TODO(strager): Validate safely.
 
         twitch_user_id = account_db.get_account_twitch_user_id(account_id)
         twitch = AuthenticatedTwitch(TwitchAuthDbUserTokenProvider(authdb, twitch_user_id))

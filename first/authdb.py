@@ -51,11 +51,11 @@ class TwitchAppTokenProvider(TokenProvider):
         return twitch.get_authenticated_app_access_token()
 
     def refresh_access_token(self) -> Token:
-        return get_access_token()
+        return self.get_access_token()
 
     @property
     def user_id(self) -> TwitchUserId:
-        return None
+        return ""
 
 class TwitchAuthDb(DbBase):
     def __init__(self, db=authdb_config["db"]):

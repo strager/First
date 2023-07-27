@@ -41,21 +41,21 @@ class TwitchEventSubWebSocketManager:
     """
 
     _lock: threading.Lock
-    _create_thread: typing.Callable[[AuthenticatedTwitch], "TwitchEventSubWebSocketThread"]
+    _create_thread: typing.Callable[[AuthenticatedTwitch, TwitchEventSubDelegate], "TwitchEventSubWebSocketThread | FakeTwitchEventSubWebSocketThread"]
     _delegate: TwitchEventSubDelegate
 
     # Protected by _lock:
-    _threads: "typing.List[TwitchEventSubWebSocketThread]"
+    _threads: "typing.List[TwitchEventSubWebSocketThread | FakeTwitchEventSubWebSocketThread]"
     _threads_which_failed_to_stop: "typing.List[TwitchEventSubWebSocketThread]"
 
-    def __init__(self, factory: typing.Callable[[AuthenticatedTwitch, TwitchEventSubDelegate], "TwitchEventSubWebSocketThread"], delegate: TwitchEventSubDelegate) -> None:
+    def __init__(self, factory: typing.Callable[[AuthenticatedTwitch, TwitchEventSubDelegate], "TwitchEventSubWebSocketThread | FakeTwitchEventSubWebSocketThread"], delegate: TwitchEventSubDelegate) -> None:
         self._lock = threading.Lock()
         self._create_thread = factory
         self._delegate = delegate
         self._threads = []
         self._threads_which_failed_to_stop = []
 
-    def create_new_connection(self, twitch: AuthenticatedTwitch) -> "TwitchEventSubWebSocketThread":
+    def create_new_connection(self, twitch: AuthenticatedTwitch) -> "TwitchEventSubWebSocketThread | FakeTwitchEventSubWebSocketThread":
         """Create a TwitchEventSubWebSocketThread for the given
         authenticated user.
 
@@ -111,7 +111,7 @@ class TwitchEventSubWebSocketManager:
                 self._threads_which_failed_to_stop.append(thread)
             raise
 
-    def get_all_threads_for_testing(self) -> "typing.List[TwitchEventSubWebSocketThread]":
+    def get_all_threads_for_testing(self) -> "typing.List[TwitchEventSubWebSocketThread | FakeTwitchEventSubWebSocketThread]":
         with self._lock:
             return list(self._threads)
 
@@ -182,7 +182,7 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
         """
         with self._lock:
             if self._thread is not None:
-                raise NotImplemented("dynamic subscriptions are not yet implemented")
+                raise NotImplementedError("dynamic subscriptions are not yet implemented")
             self._subscriptions.append(self._Subscription(type=type, version=version, condition=condition))
 
     def start_thread(self) -> None:
@@ -210,7 +210,7 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
 
             client = self._client
         if client is not None:
-            # This should raise websockets.ConnectionClosedOK on the
+            # This should raise websockets.exceptions.ConnectionClosedOK on the
             # running thread.
             # TODO(strager): Untested.
             client.close()
@@ -233,7 +233,7 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
                 with self._lock:
                     self._client = None
 
-    def _maybe_create_client(self) -> None:
+    def _maybe_create_client(self) -> typing.Optional[websockets.sync.client.ClientConnection]:
         with self._lock:
             assert self._client is None
             if self._should_stop:
@@ -256,11 +256,11 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
         while True:
             try:
                 message = client.recv()
-            except websockets.ConnectionClosedOK:
+            except websockets.exceptions.ConnectionClosedOK:
                 logger.info("WebSocket disconnected")
                 # TODO(strager): Backoff.
                 return
-            except websockets.ConnectionClosedError:
+            except websockets.exceptions.ConnectionClosedError:
                 logger.info("WebSocket closed with an error", exc_info=True)
                 # FIXME(strager): What should we do here?
                 return
@@ -273,7 +273,7 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
         else:
             raise TypeError(f"unsupported message type: {type(message)}")
 
-    def _handle_json_message(self, message) -> None:
+    def _handle_json_message(self, message: typing.Dict[str, typing.Any]) -> None:
         with self._lock:
             self._last_received_message_timestamp = datetime.datetime.now()
         message_type = message["metadata"]["message_type"]
@@ -295,8 +295,8 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
             payload = message["payload"]
             subscription = payload["subscription"]
             self._delegate.on_eventsub_notification(
-                subscription_type=subscription["type"],
-                subscription_version=subscription["version"],
+                subscription_type=subscription.type,
+                subscription_version=subscription.version,
                 event_data=payload["event"],
             )
         elif message_type == "session_keepalive":

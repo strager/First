@@ -11,7 +11,6 @@ from first.usersdb import TwitchUsersDb
 
 users_config = cfg["usersdb"]
 DbPath = str
-TwitchUserId = str
 
 class TwitchUserNameCache(TwitchUsersDb):
 
@@ -32,12 +31,12 @@ class TwitchUserNameCache(TwitchUsersDb):
 
     # Not needed right now:
     # Twitch's /helix/users endpoint allows multiple IDs. We can leverage this fact to improve performance of batch queries:
-    def get_display_name_from_id_batch(self, ids: typing.List[TwitchUserId]) -> typing.List[str]: ...
+    # def get_display_name_from_id_batch(self, ids: typing.List[TwitchUserId]) -> typing.List[str]: ...
 
     # Not needed right now:
     # Calls Twitch's /helix/users endpoint if the data is missing from the database.
     # https://dev.twitch.tv/docs/api/reference/#get-users
-    def get_user_id_from_user_name(self, user_name: str) -> TwitchUserId: ...
+    # def get_user_id_from_user_name(self, user_name: str) -> TwitchUserId: ...
 
     def set_user_info(self, user_id: TwitchUserId, user_login: typing.Optional[str] = None, display_name: typing.Optional[str] = None):
         """Update the cache if we happen to receive data from some Twitch API

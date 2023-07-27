@@ -52,7 +52,7 @@ class DbBase:
             "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
         )
 
-    def _create_updated_at_trigger(self, table_name: SQLTableName) -> SQLCode:
+    def _create_updated_at_trigger(self, table_name: SQLTableName) -> None:
         """Create a trigger to update updated_at when any row changes in the
         given table.
 

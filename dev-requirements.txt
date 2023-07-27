@@ -1,3 +1,7 @@
 tox
 responses
 pytest
+mypy
+types-requests
+pylint
+bandit

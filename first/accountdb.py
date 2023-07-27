@@ -86,7 +86,7 @@ class FirstAccountDb(DbBase):
         if result_fetched is None:
             raise FirstAccountNotFoundError
         account_id, = result_fetched
-        return account_id
+        return str(account_id)
 
     def get_account_reward_id(self, account_id: FirstAccountId) -> RewardId:
         with self._lock:
@@ -101,7 +101,7 @@ class FirstAccountDb(DbBase):
         reward_id, = result_fetched
         return reward_id
 
-    def set_account_reward_id(self, account_id: FirstAccountId, reward_id: RewardId) -> None:
+    def set_account_reward_id(self, account_id: FirstAccountId | None, reward_id: RewardId | None) -> None:
         with self._lock:
             cur = self.db.cursor()
             data = {
