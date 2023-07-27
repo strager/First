@@ -76,8 +76,8 @@ def test_get_lifetime_user_points():
 
 def test_get_streamers_monthly_leaderboard():
     pointsdb = insert_data()
-    assert [("streamer_1", 1), ("streamer_2", 1)] == pointsdb.get_streamers_monthly_leaderboard()
+    assert [("streamer_2", 1), ("streamer_1", 1)] == pointsdb.get_streamers_monthly_leaderboard()
 
 def test_get_streamers_lifetime_leaderboard():
     pointsdb = insert_data()
-    assert [("streamer_1", 1), ("streamer_2", 2)] == pointsdb.get_streamers_lifetime_leaderboard()
+    assert [("streamer_2", 2), ("streamer_1", 1)] == pointsdb.get_streamers_lifetime_leaderboard()
