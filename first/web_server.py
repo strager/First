@@ -272,7 +272,7 @@ def create_app_from_dependencies(
             "grant_type": "authorization_code",
             "client_id": twitch_config["client_id"],
             "client_secret": twitch_config["client_secret"],
-            "redirect_uri": get_twitch_oauth_redirect_uri(),
+            "redirect_uri": twitch_config["redirect_uri"],
         }
         response = requests.post("https://id.twitch.tv/oauth2/token", data=data).json()
         access_token = response['access_token']
@@ -304,7 +304,7 @@ def create_app_from_dependencies(
         url = (
             f"https://id.twitch.tv/oauth2/authorize?response_type=code"
             f"&client_id={quote_plus(twitch_config['client_id'])}"
-            f"&redirect_uri={quote_plus(get_twitch_oauth_redirect_uri())}"
+            f"&redirect_uri={quote_plus(twitch_config['redirect_uri'])}"
             f"&scope={quote_plus(' '.join(scopes))}"
             f"&state={quote_plus(state)}"
         )
@@ -352,9 +352,6 @@ def create_app_from_dependencies(
         return {
             "account_id": flask.session.get('account_id', None),
         }
-
-    def get_twitch_oauth_redirect_uri() -> str:
-        return flask.url_for(oauth_twitch.__name__, _external=True)
 
     def set_up() -> None:
         for user_id in account_db.get_all_twitch_user_ids_with_any_reward_id():

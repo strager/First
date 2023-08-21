@@ -41,7 +41,7 @@ def test_log_in_post_redirects_to_twitch(web_app):
     parameters = urllib.parse.parse_qs(url.query)
     assert parameters["response_type"] == ["code"]
     assert parameters["client_id"] == [twitch_config["client_id"]]
-    assert parameters["redirect_uri"] == ["http://localhost/oauth/twitch"]
+    assert parameters["redirect_uri"] == ["http://localhost:5000/oauth/twitch"]
     scopes = parameters["scope"][-1].split(" ")
     assert "channel:read:redemptions" in scopes
     assert "channel:manage:redemptions" in scopes
@@ -73,7 +73,7 @@ def test_oauth_twitch_success(web_app, authdb):
                 "grant_type": "authorization_code",
                 "client_id": twitch_config["client_id"],
                 "client_secret": twitch_config["client_secret"],
-                "redirect_uri": "http://localhost/oauth/twitch",
+                "redirect_uri": "http://localhost:5000/oauth/twitch",
             }),
         ],
     )

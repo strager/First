@@ -11,7 +11,7 @@ session_secret_key = ""
 # console. https://dev.twitch.tv/console
 client_id = "CLIENT_ID"
 client_secret = "CLIENT_SECRET"
-
+redirect_uri = "http://localhost:5000/oauth/twitch"
 
 # Leave the remaining settings at their defaults unless you have a reason to change them.
 [accountsdb]
