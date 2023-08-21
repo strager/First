@@ -73,7 +73,7 @@ class AuthenticatedTwitch:
     def get_user_display_name_by_user_id(self, user_id: "TwitchUserId") -> str:
         data = self._get_json(f"https://api.twitch.tv/helix/users?id={quote_plus(user_id)}")
         # TODO(strager): Robust error handling.
-        return data["data"][0]["display_name"]
+        return data["data"][0]["display_name"] if data["data"] else f"DELETED USER ID {user_id}"
 
     def create_custom_channel_points_reward(
         self,
