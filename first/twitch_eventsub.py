@@ -293,10 +293,10 @@ class TwitchEventSubWebSocketThread(TwitchEventSubWebSocketThreadBase):
                 })
         elif message_type == "notification":
             payload = message["payload"]
-            subscription = payload["subscription"]
+            subscription_payload = payload["subscription"]
             self._delegate.on_eventsub_notification(
-                subscription_type=subscription.type,
-                subscription_version=subscription.version,
+                subscription_type=subscription_payload["type"],
+                subscription_version=subscription_payload["version"],
                 event_data=payload["event"],
             )
         elif message_type == "session_keepalive":
